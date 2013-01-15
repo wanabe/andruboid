@@ -1,4 +1,5 @@
 all: build.xml
+	$(NDK_HOME)/ndk-build
 	ant debug install
 
 .PHONY : clean all clean-with-git
