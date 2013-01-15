@@ -10,5 +10,16 @@ public class Andruboid extends Activity
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+        run("title 'this ' + \"is #{:andruboid} workng #{'!' * 3}\"" );
+    }
+
+    static {
+        System.loadLibrary("andruboid");
+    }
+
+    protected native void run(String s);
+
+    protected void title(String s) {
+        setTitle(s);
     }
 }
