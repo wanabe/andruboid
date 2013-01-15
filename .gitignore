@@ -1,3 +1,7 @@
+bin/
+gen/
+libs/
+obj/
 *.1~
 build.xml
 local.properties
