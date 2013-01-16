@@ -1,6 +1,7 @@
 #!/bin/sh
 VirtualBox --startvm $AVM &
 AVM_ID=$!
+echo "vm pid is $AVM_ID"
 trap "kill $AVM_ID; $ADB disconnect 192.168.56.101; exit 0" 2
 $ADB disconnect 192.168.56.101
 PING=1
