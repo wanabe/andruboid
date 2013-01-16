@@ -11,3 +11,4 @@ do
 done
 $ADB connect 192.168.56.101
 sh -c "cd $AVMPLAYER_DIR;./run.sh 480 720 160"
+kill $AVM_ID; $ADB disconnect 192.168.56.101
