@@ -4,7 +4,7 @@
       android:versionCode="1"
       android:versionName="0.0.1">
     <uses-sdk android:minSdkVersion="3" />
-    <application android:label="Andruboid">
+    <application android:label="Andruboid" android:debuggable="true">
         <activity android:name="Andruboid"
                   android:label="Andruboid">
             <intent-filter>
