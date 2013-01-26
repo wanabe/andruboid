@@ -6,8 +6,8 @@
 # mruby version by Hideki Miura
 #
 
-IMAGE_WIDTH = 2
-IMAGE_HEIGHT = 2
+IMAGE_WIDTH = 4
+IMAGE_HEIGHT = 4
 NSUBSAMPLES = 2
 NAO_SAMPLES = 4
 
@@ -298,16 +298,16 @@ class Scene
         r = rad.x / (nsf * nsf)
         g = rad.y / (nsf * nsf)
         b = rad.z / (nsf * nsf)
-        printf("%c", clamp(r))
-        printf("%c", clamp(g))
-        printf("%c", clamp(b))
+        printf("%d ", clamp(r))
+        printf("%d ", clamp(g))
+        printf("%d\n", clamp(b))
       end
     end
   end
 end
 
 # File.open("ao.ppm", "w") do |fp|
-  printf("P6\n")
+  printf("P3\n")
   printf("%d %d\n", IMAGE_WIDTH, IMAGE_HEIGHT)
   printf("255\n", IMAGE_WIDTH, IMAGE_HEIGHT)
   Scene.new.render(IMAGE_WIDTH, IMAGE_HEIGHT, NSUBSAMPLES)
