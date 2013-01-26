@@ -5,12 +5,15 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 
 public class Andruboid extends Activity
 {
+    TextView screen;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -21,11 +24,20 @@ public class Andruboid extends Activity
 
         Button btn = new Button(this);
         btn.setText("start bench");
+        layout.addView(btn);
+
+        ScrollView scroll = new ScrollView(this);
+        layout.addView(scroll);
+
+        LinearLayout layout2 = new LinearLayout(this);
+        layout2.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(layout2);
 
         ClickListener listener = new ClickListener();
         btn.setOnClickListener(listener);
 
-        layout.addView(btn);
+        screen = new TextView(this);
+        layout2.addView(screen);
     }
 
     static {
@@ -34,6 +46,9 @@ public class Andruboid extends Activity
 
     protected native void run();
 
+    protected void print(String message) {
+      screen.append(message);
+    }
     protected void alert(String message) {
         new AlertDialog.Builder(this)
         .setTitle("alert")
