@@ -6,8 +6,8 @@
 # mruby version by Hideki Miura
 #
 
-IMAGE_WIDTH = 4
-IMAGE_HEIGHT = 4
+IMAGE_WIDTH = 5
+IMAGE_HEIGHT = 5
 NSUBSAMPLES = 2
 NAO_SAMPLES = 4
 
