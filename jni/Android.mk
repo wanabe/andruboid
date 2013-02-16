@@ -11,6 +11,7 @@ LOCAL_SRC_FILES := andruboid.c app.c \
 		   $(patsubst jni/%, %, $(MRUBY_SRC_FILES))
 
 jni/mruby/bin/mrbc: $(MRUBY_SRC_FILES)
+	cd jni/mruby; make
 
 jni/mruby/build/host/mrblib/mrblib.c jni/mruby/build/host/src/y.tab.c:
 	cd jni/mruby; make
