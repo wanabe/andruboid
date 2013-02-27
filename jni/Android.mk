@@ -1,7 +1,8 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := andruboid
-LOCAL_CPPFLAGS += -fexceptions -Wall
+LOCAL_CFLAGS += -fexceptions -Wall -ggdb3 -O3
+LOCAL_CPPFLAGS += -fexceptions -Wall -ggdb3 -O3
 LOCAL_C_INCLUDES := jni/mruby/include jni/mruby/include/xtaak jni/mruby/src
 MRUBY_SRC_FILES := jni/mruby/build/host/src/y.tab.c \
 		   jni/mruby/build/host/mrblib/mrblib.c \
