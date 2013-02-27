@@ -24,6 +24,8 @@ static mrb_value printstr(mrb_state* mrb, mrb_value obj) {
     jmethodID mid = (*cx->env)->GetMethodID(cx->env, cx->klass, "print", "(Ljava/lang/String;)V");
 
     (*cx->env)->CallVoidMethod(cx->env, cx->recv, mid, jstr);
+
+    (*cx->env)->DeleteLocalRef(cx->env, jstr);
   }
   return mrb_nil_value();
 }
