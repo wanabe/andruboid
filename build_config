@@ -1,0 +1,4 @@
+MRuby::CrossBuild.new('androideabi') do |conf|
+  toolchain :androideabi
+end
+

@@ -2,7 +2,9 @@ bin/
 gen/
 libs/
 obj/
-jni/app.c
+mruby/
+jni/mruby-all.h
+jni/libmruby.a
 *.1~
 *.2~
 build.xml

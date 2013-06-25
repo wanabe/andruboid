@@ -17,7 +17,7 @@ Everything is under construction and fluid.
 
 ## how to build and install
 
-    # make ANDROID_HOME=/path/to/android-sdk NDK_HOME=/path/to/android-ndk
+    # make ANDROID_SDK_HOME=/path/to/android-sdk ANDROID_NDK_HOME=/path/to/android-ndk
 
 ## tool
 
