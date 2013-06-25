@@ -24,7 +24,7 @@ public class Andruboid extends Activity
     }
 
 	String[] updateScript() {
-		String [] files = {"lib.rb", "main.rb"};
+		String [] files = {"jmi.rb", "android.rb", "main.rb"};
 		try {
 			for(int i = 0;i < files.length; i++) {
 				InputStream src = getAssets().open(files[i]);

@@ -7,7 +7,6 @@
 static void
 jobj_free(mrb_state *mrb, void *p)
 {
-  // TODO: this function shouldn't be call for JavaMain
   JNIEnv* env = (JNIEnv*)mrb->ud;
   (*env)->DeleteGlobalRef(env, (jobject)p);
 }
@@ -42,7 +41,11 @@ static mrb_value jobj__initialize(mrb_state *mrb, mrb_value self) {
 }
 
 static mrb_value main__new(mrb_state *mrb, struct RClass *klass, jobject jact) {
-  mrb_value mobj = mrb_obj_value(Data_Wrap_Struct(mrb, klass, &jobj_data_type, (void*)jact));
+  mrb_value mobj;
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+
+  jact = (*env)->NewGlobalRef(env, jact);
+  mobj = mrb_obj_value(Data_Wrap_Struct(mrb, klass, &jobj_data_type, (void*)jact));
   mrb_funcall(mrb, mobj, "initialize", 0);
   return mobj;
 }
