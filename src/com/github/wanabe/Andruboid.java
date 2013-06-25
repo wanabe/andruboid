@@ -23,28 +23,20 @@ public class Andruboid extends Activity
         initialize(updateScript());
     }
 
-	String updateScript() {
-		File script = new File("/sdcard/andruboid/main.rb");
+	String[] updateScript() {
+		String [] files = {"lib.rb", "main.rb"};
 		try {
-			byte[] buf = new byte[4096];
-			int len;
-			InputStream src = getAssets().open("main.rb");
-			FileOutputStream dst = new FileOutputStream(script);
-			while ((len = src.read(buf)) != -1) {
-				dst.write(buf, 0, len);
+			for(int i = 0;i < files.length; i++) {
+				InputStream src = getAssets().open(files[i]);
+				files[i] = new Scanner(src, "UTF-8").useDelimiter("//A").next();
 			}
-			dst.close();
-			src.close();
-
-			src = getAssets().open("lib.rb");
-			return new Scanner(src, "UTF-8").useDelimiter("//A").next();
 		} catch(IOException e) {
 		}
-		return null;
+		return files;
 	}
 
 
-    public native void initialize(String str);
+    public native void initialize(String[] str);
 
     static {
         System.loadLibrary("andruboid");

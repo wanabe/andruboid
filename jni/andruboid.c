@@ -103,27 +103,24 @@ static void init_jmi(mrb_state *mrb) {
   mrb_define_method(mrb, klass, "call", jmeth__call, ARGS_REST());
 }
 
-static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, const char *lib) {
+static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectArray scrs) {
   FILE *fp;
   mrb_value mobj, mstr, mclass, mmain_class;
+  jstring scr;
+  jshort len;
+  int i;
 
   mrb->ud = (void*)env;
   init_jmi(mrb);
 
-  mrb_load_string(mrb, lib);
-  if (mrb->exc) {
-    return;
+  len = (*env)->GetArrayLength(env, scrs);
+  for(i = 0; i < len; i++) {
+    scr = (*env)->GetObjectArrayElement(env, scrs, i);
+    mstr = mrb_load_string(mrb, (*env)->GetStringUTFChars(env, scr, NULL));
+    if (mrb->exc) {
+      return;
+    }
   }
-
-  fp = fopen("/sdcard/andruboid/main.rb", "r");
-  mstr = mrb_load_file(mrb, fp);
-  fclose(fp);
-  if (mrb->exc) {
-    return;
-  }
-
-  mstr = mrb_funcall(mrb, mstr, "inspect", 0);
-  mstr = mrb_funcall(mrb, mrb_str_new_cstr(mrb, "Hello "), "+", 1, mstr);
 
   mmain_class = mrb_obj_value(mrb_class_get(mrb, "JavaMain"));
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
@@ -135,9 +132,9 @@ static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, const ch
   mrb_iv_set(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"), mobj);
 }
 
-void Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz, jstring scr) {
+void Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz, jobjectArray scrs) {
   mrb_state *mrb = mrb_open();
 
-  load_init_script(mrb, env, thiz, (*env)->GetStringUTFChars(env, scr, NULL));
+  load_init_script(mrb, env, thiz, scrs);
 }
 
