@@ -1,76 +1,52 @@
 package com.github.wanabe;
 
 import android.app.Activity;
-import android.os.Bundle;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
 import android.widget.TextView;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
+import android.os.Bundle;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.FileOutputStream;
+import java.io.File;
+import android.content.pm.PackageManager;
+import android.content.pm.ApplicationInfo;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipEntry;
+import java.util.Enumeration;
+import java.lang.String;
+import java.util.Scanner;
 
 public class Andruboid extends Activity
 {
-    TextView screen;
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        setContentView(layout);
-
-        Button btn = new Button(this);
-        btn.setText("start bench");
-        layout.addView(btn);
-
-        ScrollView scroll = new ScrollView(this);
-        layout.addView(scroll);
-
-        LinearLayout layout2 = new LinearLayout(this);
-        layout2.setOrientation(LinearLayout.VERTICAL);
-        scroll.addView(layout2);
-
-        ClickListener listener = new ClickListener();
-        btn.setOnClickListener(listener);
-
-        screen = new TextView(this);
-        layout2.addView(screen);
+    public void onCreate(Bundle state) {
+        super.onCreate(state);
+        initialize(updateScript());
     }
+
+	String updateScript() {
+		File script = new File("/sdcard/andruboid/main.rb");
+		try {
+			byte[] buf = new byte[4096];
+			int len;
+			InputStream src = getAssets().open("main.rb");
+			FileOutputStream dst = new FileOutputStream(script);
+			while ((len = src.read(buf)) != -1) {
+				dst.write(buf, 0, len);
+			}
+			dst.close();
+			src.close();
+
+			src = getAssets().open("lib.rb");
+			return new Scanner(src, "UTF-8").useDelimiter("//A").next();
+		} catch(IOException e) {
+		}
+		return null;
+	}
+
+
+    public native void initialize(String str);
 
     static {
         System.loadLibrary("andruboid");
     }
-
-    protected native void run();
-
-    protected void print(String message) {
-      screen.append(message);
-    }
-    protected void alert(String message) {
-        new AlertDialog.Builder(this)
-        .setTitle("alert")
-        .setMessage(message)
-        .setPositiveButton(
-          "Ok",
-          new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-            }
-          })
-        .show();
-    }
-
-    class ClickListener implements OnClickListener {
-        @Override
-        public void onClick(View v) {
-            long t1 = System.currentTimeMillis();
-            run();
-            long t2 = System.currentTimeMillis();
-            Button b = (Button)v;
-            b.setText("ok: "  + ((t2 - t1) / 1000.0) + "sec.");
-        }
-    };
 }
