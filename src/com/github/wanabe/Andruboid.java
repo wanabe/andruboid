@@ -36,7 +36,7 @@ public class Andruboid extends Activity
 	}
 
 
-    public native void initialize(String[] str);
+    public native String initialize(String[] str);
 
     static {
         System.loadLibrary("andruboid");

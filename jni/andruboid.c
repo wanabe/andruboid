@@ -4,6 +4,8 @@
 
 #include "mruby-all.h"
 
+char err[1024] = {0};
+
 static void
 jobj_free(mrb_state *mrb, void *p)
 {
@@ -88,22 +90,26 @@ static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-static void init_jmi(mrb_state *mrb) {
-  struct RClass *klass;
-  klass = mrb_define_class(mrb, 
-    "JavaObject", mrb->object_class);
+static struct RClass *init_jmi(mrb_state *mrb) {
+  struct RClass *klass, *mod;
+  mod = mrb_define_module(mrb, "Jmi");
+
+  klass = mrb_define_class_under(mrb, mod,
+    "Method", mrb->object_class);
+  MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
+  mrb_define_method(mrb, klass, "call", jmeth__call, ARGS_REST());
+
+  klass = mrb_define_class_under(mrb, mod,
+    "Object", mrb->object_class);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
   mrb_define_method(mrb, klass, "initialize", jobj__initialize, ARGS_REQ(1));
 
-  klass = mrb_define_class(mrb, 
-    "JavaMain", klass);
+  klass = mrb_define_class_under(mrb, mod, 
+    "Main", klass);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
   mrb_define_method(mrb, klass, "initialize", jmain__initialize, ARGS_NONE());
-
-  klass = mrb_define_class(mrb, 
-    "JavaMethod", mrb->object_class);
-  MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
-  mrb_define_method(mrb, klass, "call", jmeth__call, ARGS_REST());
+  
+  return klass;
 }
 
 static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectArray scrs) {
@@ -112,32 +118,38 @@ static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectA
   jstring scr;
   jshort len;
   int i;
+  struct RClass *klass;
 
   mrb->ud = (void*)env;
-  init_jmi(mrb);
+  klass = init_jmi(mrb);
 
   len = (*env)->GetArrayLength(env, scrs);
   for(i = 0; i < len; i++) {
     scr = (*env)->GetObjectArrayElement(env, scrs, i);
     mstr = mrb_load_string(mrb, (*env)->GetStringUTFChars(env, scr, NULL));
     if (mrb->exc) {
+      mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+      strcat(err, mrb_string_value_cstr(mrb, &mstr));
       return;
     }
   }
 
-  mmain_class = mrb_obj_value(mrb_class_get(mrb, "JavaMain"));
+  mmain_class = mrb_obj_value(klass);
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
   mobj = main__new(mrb, mrb_class_ptr(mclass), jact);
 
   if (mrb->exc) {
+    mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+    strcat(err, mrb_string_value_cstr(mrb, &mstr));
     return;
   }
   mrb_iv_set(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"), mobj);
 }
 
-void Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz, jobjectArray scrs) {
+jstring Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz, jobjectArray scrs) {
   mrb_state *mrb = mrb_open();
 
   load_init_script(mrb, env, thiz, scrs);
+  return (*env)->NewStringUTF(env, err);
 }
 
