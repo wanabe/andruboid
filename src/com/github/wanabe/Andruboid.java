@@ -20,7 +20,10 @@ public class Andruboid extends Activity
     @Override
     public void onCreate(Bundle state) {
         super.onCreate(state);
-        initialize(updateScript());
+        String ret = initialize(updateScript());
+		if (ret.length() > 0) {
+			setTitle(ret);
+		}
     }
 
 	String[] updateScript() {
