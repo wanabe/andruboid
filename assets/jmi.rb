@@ -1,19 +1,12 @@
 module Jmi
-  class Method
-    def initialize(name, sig)
-      @name, @sig = name, sig
-    end
-  end
-
   class Object
     class << self
       attr_writer :package
-      attr_writer :class_path
       def define_init(arg)
         @init_sig = "(#{arg})V"
       end
       def define(jname, arg, ret, *names)
-        jmethod = Jmi::Method.new(jname, "(#{arg})#{ret}")
+        jmethod = Jmi::Method.new(self, jname, "(#{arg})#{ret}")
         names.push jname if names.empty?
         names.each do |name|
           define_method(name) do |*args|
@@ -31,9 +24,11 @@ module Jmi
   end
  
   class Main
+    self.class_path = "android/app/Activity"
     class << self
       def inherited(main)
         @main = main
+        main.class_path = "android/app/Activity"
       end
     end
   end
