@@ -7,10 +7,22 @@ module Jmi
         #define  J:Boif, ;name, J;Obj
       end
     end
+    module App
+      class Activity < Jmi::Object
+        define :setContentView, "Landroid/view/View;", "V"
+      end
+    end
   end
 
-  class Main
-    define :setContentView, "Landroid/view/View;", "V"
+  class Main < Android::App::Activity
+    def initialize
+    end
+    class << self
+      def inherited(main)
+        super
+        @main = main
+      end
+    end
   end
 end
 

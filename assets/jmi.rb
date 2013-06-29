@@ -18,20 +18,16 @@ module Jmi
         end
       end
       def inherited(klass)
-        path = klass.to_s.split("::")
+        java_class = klass
+        path = nil
+        while true # TODO: for Main
+          path = java_class.to_s.split("::")
+          break if path.size > 2
+          java_class = java_class.superclass
+        end
         path.shift
         path[0, path.length - 1].each {|s| s.downcase!}
         klass.class_path = path.join("/")
-      end
-    end
-  end
- 
-  class Main
-    self.class_path = "android/app/Activity"
-    class << self
-      def inherited(main)
-        @main = main
-        main.class_path = "android/app/Activity"
       end
     end
   end

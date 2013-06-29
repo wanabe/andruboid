@@ -159,12 +159,7 @@ static struct RClass *init_jmi(mrb_state *mrb) {
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
   mrb_define_singleton_method(mrb, klass, "class_path=", jobj_s__set_class_path, ARGS_REQ(1));
 
-  klass = mrb_define_class_under(mrb, mod, 
-    "Main", klass);
-  MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
-  mrb_define_method(mrb, klass, "initialize", jmain__initialize, ARGS_NONE());
-  
-  return klass; /* Jmi::Main */
+  return mod;
 }
 
 static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectArray scrs) {
@@ -173,10 +168,10 @@ static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectA
   jstring scr;
   jshort len;
   int i;
-  struct RClass *klass;
+  struct RClass *mod, *klass;
 
   mrb->ud = (void*)env;
-  klass = init_jmi(mrb);
+  mod = init_jmi(mrb);
 
   len = (*env)->GetArrayLength(env, scrs);
   for(i = 0; i < len; i++) {
@@ -189,7 +184,16 @@ static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectA
     }
   }
 
-  mmain_class = mrb_obj_value(klass);
+  mmain_class = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Main"));
+  klass = mrb_class_ptr(mmain_class);
+  MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
+
+  if (mrb->exc) {
+    mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+    strcat(err, mrb_string_value_cstr(mrb, &mstr));
+    return;
+  }
+
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
   mobj = wrap_jobject(mrb, mrb_class_ptr(mclass), jact);
 
