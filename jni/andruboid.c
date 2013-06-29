@@ -57,12 +57,12 @@ static mrb_value jobj__initialize(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-static mrb_value main__new(mrb_state *mrb, struct RClass *klass, jobject jact) {
+static mrb_value wrap_jobject(mrb_state *mrb, struct RClass *klass, jobject jobj) {
   mrb_value mobj;
   JNIEnv* env = (JNIEnv*)mrb->ud;
 
-  jact = (*env)->NewGlobalRef(env, jact);
-  mobj = mrb_obj_value(Data_Wrap_Struct(mrb, klass, &jobj_data_type, (void*)jact));
+  jobj = (*env)->NewGlobalRef(env, jobj);
+  mobj = mrb_obj_value(Data_Wrap_Struct(mrb, klass, &jobj_data_type, (void*)jobj));
   mrb_funcall(mrb, mobj, "initialize", 0);
   return mobj;
 }
@@ -191,7 +191,7 @@ static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectA
 
   mmain_class = mrb_obj_value(klass);
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
-  mobj = main__new(mrb, mrb_class_ptr(mclass), jact);
+  mobj = wrap_jobject(mrb, mrb_class_ptr(mclass), jact);
 
   if (mrb->exc) {
     mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
