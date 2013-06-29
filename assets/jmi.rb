@@ -6,11 +6,17 @@ module Jmi
     class << self
       attr_reader :init_method
       def define_init(arg)
-        @init_method = Jmi::Method.new self, "<init>".intern, "(#{arg})V"
+        @init_method = Jmi::Method.new self, "<init>", "(#{arg})V"
       end
-      def define(jname, arg, ret, *names)
+      def define(ret, names, arg)
+        names = [names] unless names.is_a? Array
+        names.push names.first[4..-1] if names.first.index("get_") == 0
+        names.push "#{names.first[4..-1]}=" if names.first.index("set_") == 0
+        jname = names.first.split "_"
+        jname[1, jname.length].each {|s| s.capitalize!}
+        jname = jname.join("")
+        names.push jname
         jmethod = Jmi::Method.new self, jname, "(#{arg})#{ret}"
-        names.push jname if names.empty?
         names.each do |name|
           define_method(name) do |*args|
             jmethod.call self, *args

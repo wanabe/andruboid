@@ -3,13 +3,12 @@ module Jmi
     module Widget
       class TextView < Jmi::Object
         define_init "Landroid/content/Context;"
-        define :setText, "Ljava/lang/CharSequence;", "V"
-        #define  J:Boif, ;name, J;Obj
+        define "V", "set_text", "Ljava/lang/CharSequence;"
       end
     end
     module App
       class Activity < Jmi::Object
-        define :setContentView, "Landroid/view/View;", "V"
+        define "V", "set_content_view", "Landroid/view/View;"
       end
     end
   end

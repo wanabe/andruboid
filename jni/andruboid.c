@@ -67,9 +67,6 @@ static mrb_value wrap_jobject(mrb_state *mrb, struct RClass *klass, jobject jobj
   return mobj;
 }
 
-static mrb_value jmain__initialize(mrb_state *mrb, mrb_value self) {
-}
-
 struct RJMethod {
   jmethodID id;
   int type; // TODO
@@ -94,11 +91,8 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   mrb_get_args(mrb, "ooo", &mclass, &mname, &msig);
   mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
   jclass = DATA_PTR(mclass);
-  cname = mrb_sym2name(mrb, mrb_symbol(mname));
-  if (cname[0] == '"') {
-    mname = mrb_funcall(mrb, mname, "to_s", 0);
-    cname = mrb_string_value_cstr(mrb, &mname);
-  }
+  cname = mrb_string_value_cstr(mrb, &mname);
+
   csig = mrb_string_value_cstr(mrb, &msig);
   jmeth = (*env)->GetMethodID(env, jclass, cname, csig);
 

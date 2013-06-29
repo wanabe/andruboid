@@ -3,8 +3,8 @@ module Jmi
     include Android::Widget
     def initialize
       textview = TextView.new(self)
-      textview.setText("hello from mruby")
-      setContentView(textview)
+      textview.text = "hello from mruby"
+      self.content_view = textview
     end
   end
 end
