@@ -42,13 +42,14 @@ static mrb_value jobj__initialize(mrb_state *mrb, mrb_value self) {
 
   mrb_get_args(mrb, "o", &mobj); // TODO
   jarg = DATA_PTR(mobj);
+
   mobj = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
-  //cpath = mrb_string_value_cstr(mrb, &mstr);
+  jclass = DATA_PTR(mobj);
+
   mstr = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "@init_sig"));
   csig = mrb_string_value_cstr(mrb, &mstr);
-
-  jclass = DATA_PTR(mobj);
   jmeth = (*env)->GetMethodID(env, jclass, "<init>", csig);
+
   jobj = (*env)->NewObject(env, jclass, jmeth, jarg);
   DATA_PTR(self) = (*env)->NewGlobalRef(env, jobj);
   
@@ -94,11 +95,15 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
   jclass = DATA_PTR(mclass);
   cname = mrb_sym2name(mrb, mrb_symbol(mname));
+  if (cname[0] == '"') {
+    mname = mrb_funcall(mrb, mname, "to_s", 0);
+    cname = mrb_string_value_cstr(mrb, &mname);
+  }
   csig = mrb_string_value_cstr(mrb, &msig);
   jmeth = (*env)->GetMethodID(env, jclass, cname, csig);
 
   smeth->id = jmeth;
-  smeth->type = csig[2] != 'a'; // TODO
+  smeth->type = cname[0] == '<' ? 2 : csig[2] != 'a' ? 1 : 0; // TODO
   DATA_TYPE(self) = &jmeth_data_type;
   DATA_PTR(self) = smeth;
   
@@ -107,7 +112,7 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
 
 static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  mrb_value mobj, marg, mstr, mclass;
+  mrb_value mobj, marg;
   struct RJMethod *smeth;
   jobject jobj;
 
@@ -115,15 +120,26 @@ static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
 
   smeth = DATA_PTR(self);
 
-  if (smeth->type) { //TODO
-    jobj = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &marg));
-  } else {
-    jobj = (jobject)DATA_PTR(marg);
-  }
-  (*env)->CallVoidMethod(env, (jobject)DATA_PTR(mobj), smeth->id, jobj);
-
-  if (smeth->type) { //TODO
-    (*env)->DeleteLocalRef(env, jobj);
+  switch (smeth->type) { //TODO
+    case 2: {
+      jclass jclass;
+      mrb_value mclass = mrb_obj_value(mrb_obj_class(mrb, mobj));
+      mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
+      jclass = DATA_PTR(mclass);
+      jobj = (jobject)DATA_PTR(marg);
+      jobj = (*env)->NewObject(env, jclass, smeth->id, jobj);
+      DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
+      (*env)->DeleteLocalRef(env, jobj);
+    } break;
+    case 1: {
+      jobj = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &marg));
+      (*env)->CallVoidMethod(env, (jobject)DATA_PTR(mobj), smeth->id, jobj);
+      (*env)->DeleteLocalRef(env, jobj);
+    } break;
+    case 0: {
+      jobj = (jobject)DATA_PTR(marg);
+      (*env)->CallVoidMethod(env, (jobject)DATA_PTR(mobj), smeth->id, jobj);
+    } break;
   }
   return self;
 }
@@ -141,7 +157,6 @@ static struct RClass *init_jmi(mrb_state *mrb) {
   klass = mrb_define_class_under(mrb, mod,
     "Object", mrb->object_class);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
-  mrb_define_method(mrb, klass, "initialize", jobj__initialize, ARGS_REQ(1));
   mrb_define_singleton_method(mrb, klass, "class_path=", jobj_s__set_class_path, ARGS_REQ(1));
 
   klass = mrb_define_class_under(mrb, mod, 
