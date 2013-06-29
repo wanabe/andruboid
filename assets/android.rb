@@ -1,8 +1,12 @@
 module Jmi
-  class TextView < import("android/widget")
-    define_init "Landroid/content/Context;"
-    define :setText, "Ljava/lang/CharSequence;", "V"
-    #define  J:Boif, ;name, J;Obj
+  module Android
+    module Widget
+      class TextView < Jmi::Object
+        define_init "Landroid/content/Context;"
+        define :setText, "Ljava/lang/CharSequence;", "V"
+        #define  J:Boif, ;name, J;Obj
+      end
+    end
   end
 
   class Main

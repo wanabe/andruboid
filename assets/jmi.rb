@@ -4,7 +4,6 @@ module Jmi
       self.class.init_method.call self, *args
     end
     class << self
-      attr_writer :package
       attr_reader :init_method
       def define_init(arg)
         @init_method = Jmi::Method.new self, "<init>".intern, "(#{arg})V"
@@ -19,10 +18,10 @@ module Jmi
         end
       end
       def inherited(klass)
-        name = klass.to_s
-        colon = name.rindex ":"
-        name = name[colon + 1..-1] if colon
-        klass.class_path = "#{@package}/#{name}"
+        path = klass.to_s.split("::")
+        path.shift
+        path[0, path.length - 1].each {|s| s.downcase!}
+        klass.class_path = path.join("/")
       end
     end
   end
@@ -34,12 +33,6 @@ module Jmi
         @main = main
         main.class_path = "android/app/Activity"
       end
-    end
-  end
-  class << self
-    def import(package)
-      Jmi::Object.package = package
-      Jmi::Object
     end
   end
 end
