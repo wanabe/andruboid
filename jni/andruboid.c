@@ -162,6 +162,15 @@ static struct RClass *init_jmi(mrb_state *mrb) {
   return mod;
 }
 
+static int raised_p(mrb_state *mrb) {
+  if (mrb->exc) {
+    mrb_value mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+    strcat(err, mrb_string_value_cstr(mrb, &mstr));
+    return 1;
+  }
+  return 0;
+}
+
 static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectArray scrs) {
   FILE *fp;
   mrb_value mobj, mstr, mclass, mmain_class;
@@ -177,9 +186,7 @@ static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectA
   for(i = 0; i < len; i++) {
     scr = (*env)->GetObjectArrayElement(env, scrs, i);
     mstr = mrb_load_string(mrb, (*env)->GetStringUTFChars(env, scr, NULL));
-    if (mrb->exc) {
-      mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
-      strcat(err, mrb_string_value_cstr(mrb, &mstr));
+    if (raised_p(mrb)) {
       return;
     }
   }
@@ -187,21 +194,16 @@ static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectA
   mmain_class = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Main"));
   klass = mrb_class_ptr(mmain_class);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
-
-  if (mrb->exc) {
-    mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
-    strcat(err, mrb_string_value_cstr(mrb, &mstr));
+  if (raised_p(mrb)) {
     return;
   }
 
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
   mobj = wrap_jobject(mrb, mrb_class_ptr(mclass), jact);
-
-  if (mrb->exc) {
-    mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
-    strcat(err, mrb_string_value_cstr(mrb, &mstr));
+  if (raised_p(mrb)) {
     return;
   }
+
   mrb_iv_set(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"), mobj);
 }
 
