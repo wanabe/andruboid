@@ -1,5 +1,5 @@
 module Jmi
-  class Mred < Main
+  class Andruboid < Main
     include Android::Widget
     def initialize
       textview = TextView.new(self)

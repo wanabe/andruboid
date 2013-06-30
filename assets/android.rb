@@ -1,19 +1,35 @@
 module Jmi
-  module Android
-    module Widget
-      class TextView < Jmi::Object
-        define_init "Landroid/content/Context;"
-        define "V", "set_text", "Ljava/lang/CharSequence;"
+  module J
+    module Java
+      module Lang
+        class CharSequence
+        end
       end
     end
-    module App
-      class Activity < Jmi::Object
-        define "V", "set_content_view", "Landroid/view/View;"
+    module Android
+      module Content
+        class Context
+        end
+      end
+      module View
+        class View
+        end
+      end
+      module Widget
+        class TextView < Jmi::Object
+          define_init Android::Content::Context
+          define Void, "set_text", Java::Lang::CharSequence
+        end
+      end
+      module App
+        class Activity < Jmi::Object
+          define Void, "set_content_view", Android::View::View
+        end
       end
     end
   end
 
-  class Main < Android::App::Activity
+  class Main < J::Android::App::Activity
     def initialize
     end
     class << self

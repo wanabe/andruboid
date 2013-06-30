@@ -77,15 +77,14 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   jmeth = (*env)->GetMethodID(env, jclass, cname, csig);
   if ((*env)->ExceptionCheck(env)) {
     (*env)->ExceptionClear(env);
-    mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get %S", mname);
+    mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get %S%S", mname, msig);
   }
-
 
   smeth->id = jmeth;
   smeth->type = cname[0] == '<' ? 2 : csig[2] != 'a' ? 1 : 0; // TODO
   DATA_TYPE(self) = &jmeth_data_type;
   DATA_PTR(self) = smeth;
-  
+
   return self;
 }
 
