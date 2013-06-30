@@ -14,10 +14,13 @@ Everything is under construction and fluid.
 * Android NDK
 * JDK
 * ant
+* git
 
 ## how to build and install
 
     # make ANDROID_SDK_HOME=/path/to/android-sdk ANDROID_NDK_HOME=/path/to/android-ndk
+
+This process also clone mruby from github.com.
 
 ## tool
 

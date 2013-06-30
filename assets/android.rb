@@ -4,8 +4,10 @@ module Jmi
       module Lang
         class CharSequence
         end
+        class String < CharSequence
+        end
       end
-    end
+    end 
     module Android
       module Content
         class Context
@@ -16,6 +18,10 @@ module Jmi
         end
       end
       module Widget
+        class LinearLayout < Jmi::Object
+          define_init Android::Content::Context
+          define Void, ["add_view", "<<"], Android::View::View
+        end
         class TextView < Jmi::Object
           define_init Android::Content::Context
           define Void, "set_text", Java::Lang::CharSequence
