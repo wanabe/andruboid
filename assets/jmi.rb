@@ -1,7 +1,7 @@
 module Jmi
   class Object
     def initialize(*args)
-      self.class.init_method.call self, *args
+      self.class.init_method.call self, :initialize, *args
     end
     class << self
       attr_reader :init_method
@@ -19,7 +19,7 @@ module Jmi
         jmethod = Jmi::Method.new self, jname, "(#{arg})#{ret}"
         names.each do |name|
           define_method(name) do |*args|
-            jmethod.call self, *args
+            jmethod.call self, name, *args
           end
         end
       end

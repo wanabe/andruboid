@@ -24,37 +24,17 @@ static mrb_value jobj_s__set_class_path(mrb_state *mrb, mrb_value self) {
   mrb_get_args(mrb, "o", &mpath);
   cpath = mrb_string_value_cstr(mrb, &mpath);
   jclass = (*env)->FindClass(env, cpath);
+  if ((*env)->ExceptionCheck(env)) {
+    (*env)->ExceptionClear(env);
+    mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get %S", mpath);
+  }
+
   jglobal = (*env)->NewGlobalRef(env, jclass);
   mobj = mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &jobj_data_type, (void*)jglobal));
   mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "jclass"), mobj);
 
   (*env)->DeleteLocalRef(env, jclass);
   return mpath;
-}
-
-static mrb_value jobj__initialize(mrb_state *mrb, mrb_value self) {
-  char *cpath, *csig;
-  jclass jclass;
-  jmethodID jmeth;
-  jobject jobj, jarg;
-  JNIEnv* env = (JNIEnv*)mrb->ud;
-  mrb_value mobj, mstr, mclass = mrb_obj_value(mrb_obj_class(mrb, self));
-
-  mrb_get_args(mrb, "o", &mobj); // TODO
-  jarg = DATA_PTR(mobj);
-
-  mobj = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
-  jclass = DATA_PTR(mobj);
-
-  mstr = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "@init_sig"));
-  csig = mrb_string_value_cstr(mrb, &mstr);
-  jmeth = (*env)->GetMethodID(env, jclass, "<init>", csig);
-
-  jobj = (*env)->NewObject(env, jclass, jmeth, jarg);
-  DATA_PTR(self) = (*env)->NewGlobalRef(env, jobj);
-  
-  (*env)->DeleteLocalRef(env, jobj);
-  return self;
 }
 
 static mrb_value wrap_jobject(mrb_state *mrb, struct RClass *klass, jobject jobj) {
@@ -82,7 +62,7 @@ static const struct mrb_data_type jmeth_data_type = {
 
 static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  mrb_value mclass, mname, msig, mstr;
+  mrb_value mclass, mname, msig;
   jclass jclass;
   jmethodID jmeth;
   char *cname, *csig;
@@ -95,6 +75,11 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
 
   csig = mrb_string_value_cstr(mrb, &msig);
   jmeth = (*env)->GetMethodID(env, jclass, cname, csig);
+  if ((*env)->ExceptionCheck(env)) {
+    (*env)->ExceptionClear(env);
+    mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get %S", mname);
+  }
+
 
   smeth->id = jmeth;
   smeth->type = cname[0] == '<' ? 2 : csig[2] != 'a' ? 1 : 0; // TODO
@@ -106,11 +91,11 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
 
 static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  mrb_value mobj, marg;
+  mrb_value mobj, mname, marg;
   struct RJMethod *smeth;
   jobject jobj;
 
-  mrb_get_args(mrb, "oo", &mobj, &marg); // TODO
+  mrb_get_args(mrb, "ooo", &mobj, &mname, &marg); // TODO
 
   smeth = DATA_PTR(self);
 
@@ -135,6 +120,10 @@ static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
       (*env)->CallVoidMethod(env, (jobject)DATA_PTR(mobj), smeth->id, jobj);
     } break;
   }
+  if ((*env)->ExceptionCheck(env)) {
+    (*env)->ExceptionClear(env);
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "Jmi: exception in %S", mname);
+  }
   return self;
 }
 
@@ -151,7 +140,7 @@ static struct RClass *init_jmi(mrb_state *mrb) {
   klass = mrb_define_class_under(mrb, mod,
     "Object", mrb->object_class);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
-  mrb_define_singleton_method(mrb, klass, "class_path=", jobj_s__set_class_path, ARGS_REQ(1));
+  mrb_define_singleton_method(mrb, (struct RObject *)klass, "class_path=", jobj_s__set_class_path, ARGS_REQ(1));
 
   return mod;
 }
@@ -166,8 +155,7 @@ static int raised_p(mrb_state *mrb) {
 }
 
 static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectArray scrs) {
-  FILE *fp;
-  mrb_value mobj, mstr, mclass, mmain_class;
+  mrb_value mobj, mclass, mmain_class;
   jstring scr;
   jshort len;
   int i;
@@ -179,7 +167,7 @@ static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectA
   len = (*env)->GetArrayLength(env, scrs);
   for(i = 0; i < len; i++) {
     scr = (*env)->GetObjectArrayElement(env, scrs, i);
-    mstr = mrb_load_string(mrb, (*env)->GetStringUTFChars(env, scr, NULL));
+    mrb_load_string(mrb, (*env)->GetStringUTFChars(env, scr, NULL));
     if (raised_p(mrb)) {
       return;
     }
