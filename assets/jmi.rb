@@ -24,22 +24,55 @@ module Jmi
       attr_reader :init_method
       def define_init(*args)
         args.map! {|a| class2sig(a)}
-        @init_method = Jmi::Method.new self, "<init>", "(#{args.join('')})V"
+        @init_method = Jmi::Method.new self, "<init>", "(#{args.join("")})V"
       end
       def define(ret, names, *args)
+        type = opt = nil
         names = [names] unless names.is_a? Array
-        names.push names.first[4..-1] if names.first.index("get_") == 0
-        names.push "#{names.first[4..-1]}=" if names.first.index("set_") == 0
+
+        case
+        when args.size == 0 && names.first.index("get_") == 0
+          opt = names.first[4..-1]
+          names.push opt
+          type = :get
+        when args.size == 1 && names.first.index("set_") == 0
+          opt = names.first[4..-1]
+          names.push "#{opt}="
+          opt = "@#{opt}"
+          type = :set
+        when args.size == 1 && names.first.index("add_") == 0
+          opt = "@#{names.first[4..-1]}"
+          type = :add
+        end
+
         jname = names.first.split "_"
         jname[1, jname.length].each {|s| s.capitalize!}
         jname = jname.join("")
         names.push jname
 
         args.map! {|a| class2sig(a)}
-        jmethod = Jmi::Method.new self, jname, "(#{args.join('')})#{class2sig(ret)}"
+        jmethod = Jmi::Method.new self, jname, "(#{args.join("")})#{class2sig(ret)}"
         names.each do |name|
-          define_method(name) do |*margs|
-            jmethod.call self, name, *margs
+          case type
+          when :set
+            define_method(name) do |arg|
+              jmethod.call self, name, arg
+              instance_variable_set opt, arg
+            end
+          when :add
+            define_method(name) do |arg|
+              jmethod.call self, name, arg
+              list = instance_variable_get opt
+              if list
+                list << arg
+              else
+                instance_variable_set opt, [arg]
+              end
+            end
+          else
+            define_method(name) do |*margs|
+              jmethod.call self, name, *margs
+            end
           end
         end
       end
@@ -56,4 +89,3 @@ module Jmi
     end
   end
 end
-
