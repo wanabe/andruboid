@@ -18,22 +18,22 @@ static const struct mrb_data_type jobj_data_type = {
 static mrb_value jobj_s__set_class_path(mrb_state *mrb, mrb_value self) {
   mrb_value mobj, mpath;
   char *cpath;
-  jclass jclass, jglobal;
+  jclass jclazz, jglobal;
   JNIEnv* env = (JNIEnv*)mrb->ud;
 
   mrb_get_args(mrb, "o", &mpath);
   cpath = mrb_string_value_cstr(mrb, &mpath);
-  jclass = (*env)->FindClass(env, cpath);
+  jclazz = (*env)->FindClass(env, cpath);
   if ((*env)->ExceptionCheck(env)) {
     (*env)->ExceptionClear(env);
     mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get %S", mpath);
   }
 
-  jglobal = (*env)->NewGlobalRef(env, jclass);
+  jglobal = (*env)->NewGlobalRef(env, jclazz);
   mobj = mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &jobj_data_type, (void*)jglobal));
   mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "jclass"), mobj);
 
-  (*env)->DeleteLocalRef(env, jclass);
+  (*env)->DeleteLocalRef(env, jclazz);
   return mpath;
 }
 
@@ -63,18 +63,18 @@ static const struct mrb_data_type jmeth_data_type = {
 static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   mrb_value mclass, mname, msig;
-  jclass jclass;
+  jclass jclazz;
   jmethodID jmeth;
   char *cname, *csig;
   struct RJMethod *smeth = (struct RJMethod *)malloc(sizeof(struct RJMethod));
 
   mrb_get_args(mrb, "ooo", &mclass, &mname, &msig);
   mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
-  jclass = DATA_PTR(mclass);
+  jclazz = DATA_PTR(mclass);
   cname = mrb_string_value_cstr(mrb, &mname);
 
   csig = mrb_string_value_cstr(mrb, &msig);
-  jmeth = (*env)->GetMethodID(env, jclass, cname, csig);
+  jmeth = (*env)->GetMethodID(env, jclazz, cname, csig);
   if ((*env)->ExceptionCheck(env)) {
     (*env)->ExceptionClear(env);
     mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get %S%S", mname, msig);
@@ -100,12 +100,12 @@ static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
 
   switch (smeth->type) { //TODO
     case 2: {
-      jclass jclass;
+      jclass jclazz;
       mrb_value mclass = mrb_obj_value(mrb_obj_class(mrb, mobj));
       mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
-      jclass = DATA_PTR(mclass);
+      jclazz = DATA_PTR(mclass);
       jobj = (jobject)DATA_PTR(marg);
-      jobj = (*env)->NewObject(env, jclass, smeth->id, jobj);
+      jobj = (*env)->NewObject(env, jclazz, smeth->id, jobj);
       DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
       (*env)->DeleteLocalRef(env, jobj);
     } break;
@@ -144,54 +144,55 @@ static struct RClass *init_jmi(mrb_state *mrb) {
   return mod;
 }
 
-static int raised_p(mrb_state *mrb) {
+static int check_exc(mrb_state *mrb) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+
   if (mrb->exc) {
     mrb_value mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
-    strcat(err, mrb_string_value_cstr(mrb, &mstr));
+    jclass jclazz = (*env)->FindClass(env, "java/lang/RuntimeException");
+    if (jclazz) {
+      (*env)->ThrowNew(env, jclazz, mrb_string_value_cstr(mrb, &mstr));
+      (*env)->DeleteLocalRef(env, jclazz);
+    }
     return 1;
   }
   return 0;
 }
 
-static void load_init_script(mrb_state *mrb, JNIEnv* env, jobject jact, jobjectArray scrs) {
-  mrb_value mobj, mclass, mmain_class;
-  jstring scr;
-  jshort len;
-  int i;
-  struct RClass *mod, *klass;
+jint Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz) {
+  mrb_state *mrb = mrb_open();
 
   mrb->ud = (void*)env;
-  mod = init_jmi(mrb);
+  init_jmi(mrb);
+  
+  return (jint)mrb;
+}
 
-  len = (*env)->GetArrayLength(env, scrs);
-  for(i = 0; i < len; i++) {
-    scr = (*env)->GetObjectArrayElement(env, scrs, i);
-    mrb_load_string(mrb, (*env)->GetStringUTFChars(env, scr, NULL));
-    if (raised_p(mrb)) {
-      return;
-    }
-  }
+void Java_com_github_wanabe_Andruboid_evalScript(JNIEnv* env, jobject thiz, jint jmrb, jstring scr) {
+  mrb_state *mrb = (mrb_state *)jmrb;
+
+  mrb_load_string(mrb, (*env)->GetStringUTFChars(env, scr, NULL));
+  check_exc(mrb);
+}
+
+void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) {
+  mrb_state *mrb = (mrb_state *)jmrb;
+  struct RClass *klass, *mod = mrb_class_get(mrb, "Jmi");
+  mrb_value mmain_class, mclass, mobj;
 
   mmain_class = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Main"));
   klass = mrb_class_ptr(mmain_class);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
-  if (raised_p(mrb)) {
+  if (check_exc(mrb)) {
     return;
   }
 
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
-  mobj = wrap_jobject(mrb, mrb_class_ptr(mclass), jact);
-  if (raised_p(mrb)) {
+  mobj = wrap_jobject(mrb, mrb_class_ptr(mclass), thiz);
+  if (check_exc(mrb)) {
     return;
   }
 
   mrb_iv_set(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"), mobj);
-}
-
-jstring Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz, jobjectArray scrs) {
-  mrb_state *mrb = mrb_open();
-
-  load_init_script(mrb, env, thiz, scrs);
-  return (*env)->NewStringUTF(env, err);
 }
 

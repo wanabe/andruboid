@@ -15,33 +15,42 @@ import java.util.Enumeration;
 import java.lang.String;
 import java.util.Scanner;
 
-public class Andruboid extends Activity
-{
-    @Override
-    public void onCreate(Bundle state) {
-        super.onCreate(state);
-        String ret = initialize(updateScript());
-		if (ret.length() > 0) {
-			setTitle(ret);
-		}
-    }
+public class Andruboid extends Activity{
+	int mrb;
+	String at;
 
-	String[] updateScript() {
+	@Override
+	public void onCreate(Bundle state) {
+		super.onCreate(state);
+		try {
+			at = "initialze";
+			mrb = initialize();
+			loadScripts();
+			at = "run";
+			run(mrb);
+		} catch(RuntimeException e) {
+			setTitle(at + ": " + e.getMessage());
+		}
+	}
+
+	void loadScripts() {
 		String [] files = {"jmi.rb", "android.rb", "main.rb"};
 		try {
 			for(int i = 0;i < files.length; i++) {
+				at = files[i];
 				InputStream src = getAssets().open(files[i]);
-				files[i] = new Scanner(src, "UTF-8").useDelimiter("//A").next();
+				evalScript(mrb, new Scanner(src, "UTF-8").useDelimiter("//A").next());
 			}
 		} catch(IOException e) {
 		}
-		return files;
 	}
 
 
-    public native String initialize(String[] str);
-
-    static {
-        System.loadLibrary("andruboid");
-    }
+	public native int initialize();
+	public native void evalScript(int mrb, String scr);
+	public native void run(int mrb);
+	
+	static {
+		System.loadLibrary("andruboid");
+	}
 }
