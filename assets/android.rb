@@ -26,6 +26,10 @@ module Jmi
           define_init Android::Content::Context
           define Void, "set_text", Java::Lang::CharSequence
         end
+        class Button < Jmi::Object
+          define_init Android::Content::Context
+          define Void, "set_text", Java::Lang::CharSequence
+        end
       end
       module App
         class Activity < Jmi::Object

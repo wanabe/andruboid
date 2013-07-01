@@ -18,7 +18,9 @@ module Jmi
     include Jmi::J
     extend Jmi::J
     def initialize(*args)
-      self.class.init_method.call self, :initialize, *args
+      init = self.class.init_method
+      raise "#{self.class} has no consructor" unless init
+      init.call self, :initialize, *args
     end
     class << self
       attr_reader :init_method

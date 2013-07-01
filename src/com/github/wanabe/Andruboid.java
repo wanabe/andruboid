@@ -12,8 +12,8 @@ import android.content.pm.ApplicationInfo;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipEntry;
 import java.util.Enumeration;
-import java.lang.String;
 import java.util.Scanner;
+import android.app.AlertDialog;
 
 public class Andruboid extends Activity{
 	int mrb;
@@ -29,7 +29,8 @@ public class Andruboid extends Activity{
 			at = "run";
 			run(mrb);
 		} catch(RuntimeException e) {
-			setTitle(at + ": " + e.getMessage());
+			new AlertDialog.Builder(this).setTitle("Error at " + at)
+			.setMessage(e.getMessage()).show();
 		}
 	}
 
