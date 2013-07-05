@@ -14,6 +14,7 @@ import java.util.zip.ZipEntry;
 import java.util.Enumeration;
 import java.util.Scanner;
 import android.app.AlertDialog;
+import android.view.View;
 
 public class Andruboid extends Activity{
 	int mrb;
@@ -28,7 +29,7 @@ public class Andruboid extends Activity{
 			loadScripts();
 			at = "run";
 			run(mrb);
-		} catch(RuntimeException e) {
+		} catch(Throwable e) {
 			new AlertDialog.Builder(this).setTitle("Error at " + at)
 			.setMessage(e.getMessage()).show();
 		}
@@ -46,12 +47,36 @@ public class Andruboid extends Activity{
 		}
 	}
 
+	void handleClick(int id) {
+		try {
+			click(mrb, id);
+		} catch(Throwable e) {
+			new AlertDialog.Builder(this).setTitle("Error at OnClick")
+				.setMessage(e.getMessage()).show();
+		}
+	}
 
 	public native int initialize();
 	public native void evalScript(int mrb, String scr);
 	public native void run(int mrb);
-	
+	public native void click(int mrb, int id);
+
 	static {
 		System.loadLibrary("andruboid");
+	}
+	
+	static class ClickListener implements View.OnClickListener {
+		Andruboid self;
+		int id;
+
+		public ClickListener(Andruboid self, int id) {
+			this.self = self;
+			this.id = id;
+		}
+
+		@Override
+		public void onClick(View v) {
+			self.handleClick(id);
+		}
 	}
 }

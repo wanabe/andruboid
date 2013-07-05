@@ -25,7 +25,6 @@ static mrb_value jobj_s__set_class_path(mrb_state *mrb, mrb_value self) {
   cpath = mrb_string_value_cstr(mrb, &mpath);
   jclazz = (*env)->FindClass(env, cpath);
   if ((*env)->ExceptionCheck(env)) {
-    (*env)->ExceptionClear(env);
     mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get %S", mpath);
   }
 
@@ -47,9 +46,13 @@ static mrb_value wrap_jobject(mrb_state *mrb, struct RClass *klass, jobject jobj
   return mobj;
 }
 
+typedef mrb_value (*caller_t)(mrb_state*, mrb_value, jmethodID, jvalue*);
+
 struct RJMethod {
   jmethodID id;
-  int type; // TODO
+  caller_t caller;
+  int argc;
+  jvalue *argv;
 };
 
 static void jmeth_free(mrb_state *mrb, void *p) {
@@ -60,28 +63,77 @@ static const struct mrb_data_type jmeth_data_type = {
   "jmethod", jmeth_free, 
 };
 
+static mrb_value jmeth_i__call_void(mrb_state *mrb, mrb_value mobj, jmethodID jmeth, jvalue* argv) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+
+  (*env)->CallVoidMethodA(env, (jobject)DATA_PTR(mobj), jmeth, argv);
+  return mobj;
+}
+
+static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, jmethodID jmeth, jvalue* argv) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jclass jclazz;
+  jobject jobj;
+
+  mrb_value mclass = mrb_obj_value(mrb_obj_class(mrb, mobj));
+  mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
+  jclazz = DATA_PTR(mclass);
+  jobj = (*env)->NewObjectA(env, jclazz, jmeth, argv);
+  DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
+  (*env)->DeleteLocalRef(env, jobj);
+  return mobj;
+}
+
+struct {
+  char type;
+  caller_t caller;
+} caller_table[] = {
+  {'V', jmeth_i__call_void},
+  {0, 0}
+};
+
 static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  mrb_value mclass, mname, msig;
+  mrb_value mclass, mname, mret, margs, msig;
   jclass jclazz;
   jmethodID jmeth;
   char *cname, *csig;
   struct RJMethod *smeth = (struct RJMethod *)malloc(sizeof(struct RJMethod));
+  int i;
+  struct RArray *ary;
 
-  mrb_get_args(mrb, "ooo", &mclass, &mname, &msig);
+  mrb_get_args(mrb, "oooo", &mclass, &mret, &mname, &margs);
   mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
   jclazz = DATA_PTR(mclass);
   cname = mrb_string_value_cstr(mrb, &mname);
 
+  msig = mrb_funcall(mrb, self, "type2sig", 2, mret, margs);
   csig = mrb_string_value_cstr(mrb, &msig);
   jmeth = (*env)->GetMethodID(env, jclazz, cname, csig);
   if ((*env)->ExceptionCheck(env)) {
-    (*env)->ExceptionClear(env);
     mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get %S%S", mname, msig);
   }
 
+  ary = mrb_ary_ptr(margs);
   smeth->id = jmeth;
-  smeth->type = cname[0] == '<' ? 2 : csig[2] != 'a' ? 1 : 0; // TODO
+  if (cname[0] == '<') { /* <init> */
+    smeth->caller = jmeth_i__call_constructor;
+  } else {
+    char c = mrb_string_value_cstr(mrb, &mret)[0];
+    for(i = 0; ; i++) {
+      char type = caller_table[i].type;
+      if (!type) {
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "Jmi: return type not found");
+        break;
+      }
+      if (c == type) {
+        smeth->caller = caller_table[i].caller;
+        break;
+      }
+    }
+  }
+  smeth->argc = ary->len;
+  smeth->argv = (jvalue *)malloc(ary->len * sizeof(jvalue));
   DATA_TYPE(self) = &jmeth_data_type;
   DATA_PTR(self) = smeth;
 
@@ -90,40 +142,43 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
 
 static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  mrb_value mobj, mname, marg;
+  mrb_value mobj, mname, margs;
   struct RJMethod *smeth;
-  jobject jobj;
-
-  mrb_get_args(mrb, "ooo", &mobj, &mname, &marg); // TODO
+  struct RArray *ary;
+  int i;
 
   smeth = DATA_PTR(self);
+  mrb_get_args(mrb, "ooo", &mobj, &mname, &margs);
+  ary = mrb_ary_ptr(margs);
 
-  switch (smeth->type) { //TODO
-    case 2: {
-      jclass jclazz;
-      mrb_value mclass = mrb_obj_value(mrb_obj_class(mrb, mobj));
-      mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
-      jclazz = DATA_PTR(mclass);
-      jobj = (jobject)DATA_PTR(marg);
-      jobj = (*env)->NewObject(env, jclazz, smeth->id, jobj);
-      DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
-      (*env)->DeleteLocalRef(env, jobj);
-    } break;
-    case 1: {
-      jobj = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &marg));
-      (*env)->CallVoidMethod(env, (jobject)DATA_PTR(mobj), smeth->id, jobj);
-      (*env)->DeleteLocalRef(env, jobj);
-    } break;
-    case 0: {
-      jobj = (jobject)DATA_PTR(marg);
-      (*env)->CallVoidMethod(env, (jobject)DATA_PTR(mobj), smeth->id, jobj);
-    } break;
+  if (ary->len != smeth->argc) {
+    mrb_raisef(mrb,E_ARGUMENT_ERROR, "Jmi: arg size wrong");
   }
-  if ((*env)->ExceptionCheck(env)) {
-    (*env)->ExceptionClear(env);
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "Jmi: exception in %S", mname);
+  for (i = 0; i < ary->len; i++) {
+    mrb_value item = ary->ptr[i];
+    jvalue *jarg = smeth->argv + i;
+    switch(mrb_type(item)) {
+      case MRB_TT_DATA: {
+        jarg->l = (jobject)DATA_PTR(item);
+      } break;
+      case MRB_TT_FIXNUM: {
+        jarg->i = mrb_fixnum(item);
+      } break;
+      case MRB_TT_STRING: {
+        jarg->l = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &item));
+      } break;
+    }
   }
-  return self;
+  mobj = smeth->caller(mrb, mobj, smeth->id, smeth->argv);
+  for (i = 0; i < ary->len; i++) {
+    jvalue *jarg = smeth->argv + i;
+    switch(mrb_type(ary->ptr[i])) {
+      case MRB_TT_STRING: {
+        (*env)->DeleteLocalRef(env, jarg->l);
+      } break;
+    }
+  }
+  return mobj;
 }
 
 static struct RClass *init_jmi(mrb_state *mrb) {
@@ -148,6 +203,9 @@ static int check_exc(mrb_state *mrb) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
 
   if (mrb->exc) {
+    if ((*env)->ExceptionCheck(env)) {
+      return 1;
+    }
     mrb_value mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
     jclass jclazz = (*env)->FindClass(env, "java/lang/RuntimeException");
     if (jclazz) {
@@ -178,7 +236,7 @@ void Java_com_github_wanabe_Andruboid_evalScript(JNIEnv* env, jobject thiz, jint
 void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) {
   mrb_state *mrb = (mrb_state *)jmrb;
   struct RClass *klass, *mod = mrb_class_get(mrb, "Jmi");
-  mrb_value mmain_class, mclass, mobj;
+  mrb_value mmain_class, mclass;
 
   mmain_class = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Main"));
   klass = mrb_class_ptr(mmain_class);
@@ -188,11 +246,18 @@ void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) 
   }
 
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
-  mobj = wrap_jobject(mrb, mrb_class_ptr(mclass), thiz);
+  wrap_jobject(mrb, mrb_class_ptr(mclass), thiz);
   if (check_exc(mrb)) {
     return;
   }
+}
 
-  mrb_iv_set(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"), mobj);
+void Java_com_github_wanabe_Andruboid_click(JNIEnv* env, jobject thiz, jint jmrb, jint jid) {
+  mrb_state *mrb = (mrb_state *)jmrb;
+  struct RClass *mod = mrb_class_get(mrb, "Jmi");
+  mrb_value mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "ClickListener"));
+
+  mrb_funcall(mrb, mclass, "call", 1, mrb_fixnum_value(jid));
+  check_exc(mrb);
 }
 
