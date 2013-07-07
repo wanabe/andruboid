@@ -234,22 +234,27 @@ static int check_exc(mrb_state *mrb) {
 
 jint Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz) {
   mrb_state *mrb = mrb_open();
+  int ai = mrb_gc_arena_save(mrb);
 
   mrb->ud = (void*)env;
   init_jmi(mrb);
+  mrb_gc_arena_restore(mrb, ai);
   
   return (jint)mrb;
 }
 
 void Java_com_github_wanabe_Andruboid_evalScript(JNIEnv* env, jobject thiz, jint jmrb, jstring scr) {
   mrb_state *mrb = (mrb_state *)jmrb;
+  int ai = mrb_gc_arena_save(mrb);
 
   mrb_load_string(mrb, (*env)->GetStringUTFChars(env, scr, NULL));
+  mrb_gc_arena_restore(mrb, ai);
   check_exc(mrb);
 }
 
 void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) {
   mrb_state *mrb = (mrb_state *)jmrb;
+  int ai = mrb_gc_arena_save(mrb);
   struct RClass *klass, *mod = mrb_class_get(mrb, "Jmi");
   mrb_value mmain_class, mclass;
 
@@ -257,22 +262,25 @@ void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) 
   klass = mrb_class_ptr(mmain_class);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
   if (check_exc(mrb)) {
+    mrb_gc_arena_restore(mrb, ai);
     return;
   }
 
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
   wrap_jobject(mrb, mrb_class_ptr(mclass), thiz);
-  if (check_exc(mrb)) {
-    return;
-  }
+
+  mrb_gc_arena_restore(mrb, ai);
+  check_exc(mrb);
 }
 
 void Java_com_github_wanabe_Andruboid_click(JNIEnv* env, jobject thiz, jint jmrb, jint jid) {
   mrb_state *mrb = (mrb_state *)jmrb;
+  int ai = mrb_gc_arena_save(mrb);
   struct RClass *mod = mrb_class_get(mrb, "Jmi");
   mrb_value mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "ClickListener"));
 
   mrb_funcall(mrb, mclass, "call", 1, mrb_fixnum_value(jid));
+  mrb_gc_arena_restore(mrb, ai);
   check_exc(mrb);
 }
 
