@@ -15,13 +15,23 @@ module Jmi
         class String < CharSequence
         end
       end
+      module Util
+        module List
+          extend Generics
+          define Int, "size"
+          #define Generics, "get", Int
+        end
+      end
     end
     module Android
       module Content
         class Context
         end
         module Pm
-          class PackageManager
+          class ApplicationInfo
+          end
+          class PackageManager < Jmi::Object
+            define Java::Util::List[ApplicationInfo], "get_installed_applications", Int
           end
         end
       end

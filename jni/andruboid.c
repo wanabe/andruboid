@@ -15,7 +15,7 @@ static const struct mrb_data_type jobj_data_type = {
   "jobject", jobj_free, 
 };
 
-static mrb_value jobj_s__set_class_path(mrb_state *mrb, mrb_value self) {
+static mrb_value jclass__set_class_path(mrb_state *mrb, mrb_value self) {
   mrb_value mobj, mpath;
   char *cpath;
   jclass jclazz, jglobal;
@@ -42,7 +42,6 @@ static mrb_value wrap_jobject(mrb_state *mrb, struct RClass *klass, jobject jobj
 
   jobj = (*env)->NewGlobalRef(env, jobj);
   mobj = mrb_obj_value(Data_Wrap_Struct(mrb, klass, &jobj_data_type, (void*)jobj));
-  mrb_funcall(mrb, mobj, "initialize", 0);
   return mobj;
 }
 
@@ -81,6 +80,14 @@ static mrb_value jmeth_i__call_obj(mrb_state *mrb, mrb_value mobj, struct RJMeth
   return wrap_jobject(mrb, rmeth->klass, jobj);
 }
 
+static mrb_value jmeth_i__call_int(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jint ji;
+
+  ji = (*env)->CallIntMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  return mrb_fixnum_value(ji);
+}
+
 static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jclass jclazz;
@@ -98,6 +105,7 @@ struct {
   caller_t caller;
 } caller_table[] = {
   {'V', jmeth_i__call_void},
+  {'I', jmeth_i__call_int},
   {'L', jmeth_i__call_obj},
   {0, 0}
 };
@@ -196,9 +204,22 @@ static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
   return mobj;
 }
 
+static mrb_value jmi_s__set_class_path(mrb_state *mrb, mrb_value self) {
+  mrb_value mmod, mpath;
+  mrb_get_args(mrb, "oo", &mmod, &mpath);
+  mrb_iv_set(mrb, mmod, mrb_intern_cstr(mrb, "__classpath__"), mpath);
+  return mrb_nil_value();
+}
+
 static struct RClass *init_jmi(mrb_state *mrb) {
   struct RClass *klass, *mod;
-  mod = mrb_define_module(mrb, "Jmi");
+  mod = mrb_define_module(mrb, 
+    "Jmi");
+  mrb_define_singleton_method(mrb, (struct RObject *)mod, "set_classpath", jmi_s__set_class_path, ARGS_REQ(2));
+
+  klass = mrb_define_module_under(mrb, mod,
+    "JClass");
+  mrb_define_method(mrb, klass, "class_path=", jclass__set_class_path, ARGS_REQ(1));
 
   klass = mrb_define_class_under(mrb, mod,
     "Method", mrb->object_class);
@@ -209,7 +230,6 @@ static struct RClass *init_jmi(mrb_state *mrb) {
   klass = mrb_define_class_under(mrb, mod,
     "Object", mrb->object_class);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
-  mrb_define_singleton_method(mrb, (struct RObject *)klass, "class_path=", jobj_s__set_class_path, ARGS_REQ(1));
 
   return mod;
 }
@@ -239,7 +259,7 @@ jint Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz) {
   mrb->ud = (void*)env;
   init_jmi(mrb);
   mrb_gc_arena_restore(mrb, ai);
-  
+
   return (jint)mrb;
 }
 
@@ -256,7 +276,7 @@ void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) 
   mrb_state *mrb = (mrb_state *)jmrb;
   int ai = mrb_gc_arena_save(mrb);
   struct RClass *klass, *mod = mrb_class_get(mrb, "Jmi");
-  mrb_value mmain_class, mclass;
+  mrb_value mmain_class, mclass, mobj;
 
   mmain_class = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Main"));
   klass = mrb_class_ptr(mmain_class);
@@ -267,7 +287,8 @@ void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) 
   }
 
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
-  wrap_jobject(mrb, mrb_class_ptr(mclass), thiz);
+  mobj = wrap_jobject(mrb, mrb_class_ptr(mclass), thiz);
+  mrb_funcall(mrb, mobj, "initialize", 0);
 
   mrb_gc_arena_restore(mrb, ai);
   check_exc(mrb);

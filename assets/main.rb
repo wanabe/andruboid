@@ -12,7 +12,7 @@ module Jmi
       button = Button.new(self)
       button.text = "button"
       button.on_click_listener = ClickListener.new do
-        textview.text = package_manager.inspect
+        textview.text = package_manager.get_installed_applications(0).size.inspect
       end
 
       layout << button

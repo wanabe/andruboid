@@ -43,74 +43,100 @@ module Jmi
       "(#{args.join("")})#{ret}"
     end
   end
+  module JClass
+    include Jmi::J
+    attr_reader :init_method
+    def define_init(*args)
+      args.map! {|a| class2sig(a)}
+      @init_method = Jmi::Method.new self, Void, "<init>", args
+    end
+    def define(ret, names, *args)
+      type = opt = nil
+      names = [names] unless names.is_a? Array
+
+      case
+      when args.size == 0 && names.first.index("get_") == 0
+        opt = names.first[4..-1]
+        names.push opt
+        type = :get
+      when args.size == 1 && names.first.index("set_") == 0
+        opt = names.first[4..-1]
+        names.push "#{opt}="
+        opt = "@#{opt}"
+        type = :set
+      when args.size == 1 && names.first.index("add_") == 0
+        opt = "@#{names.first[4..-1]}"
+        type = :add
+      end
+
+      jname = names.first.split "_"
+      jname[1, jname.length].each {|s| s.capitalize!}
+      jname = jname.join("")
+      names.push jname
+
+      args.map! {|a| class2sig(a)}
+      jmethod = Jmi::Method.new self, ret, jname, args
+      names.each do |name|
+        case type
+        when :set
+          define_method(name) do |arg|
+            jmethod.call self, name, [arg]
+            instance_variable_set opt, arg
+          end
+        when :add
+          define_method(name) do |arg|
+            args = [arg]
+            jmethod.call self, name, args
+            list = instance_variable_get opt
+            if list
+              list << arg
+            else
+              instance_variable_set opt, args
+            end
+          end
+        else
+          define_method(name) do |*args|
+            jmethod.call self, name, args
+          end
+        end
+      end
+    end
+  end
   class Method
     include Jmi::J
   end
+  module Generics
+    include JClass
+    extend J
+    def [](iclass)
+      klass = @table[iclass]
+      unless klass
+        klass = Class.new Jmi::Object.force_path(Jmi::Object.class_path(self))
+        Jmi::Object.inherited klass # todo
+        Jmi.set_classpath klass, "#{self}<#{iclass}>"
+        klass.include self
+        klass.instance_variable_set "@iclass", iclass
+        @table[iclass] = klass
+      end
+      klass
+    end
+    class << self
+      def extended(obj)
+        obj.instance_variable_set "@table", {}
+        obj.class_path = class_path(obj)
+      end
+    end
+  end
   class Object
-    include Jmi::J
-    extend Jmi::J
+    include J
+    extend J
+    extend JClass
     def initialize(*args)
       init = self.class.init_method
       raise "#{self.class} has no consructor" unless init
       init.call self, :initialize, args
     end
     class << self
-      attr_reader :init_method
-      def define_init(*args)
-        args.map! {|a| class2sig(a)}
-        @init_method = Jmi::Method.new self, Void, "<init>", args
-      end
-      def define(ret, names, *args)
-        type = opt = nil
-        names = [names] unless names.is_a? Array
-
-        case
-        when args.size == 0 && names.first.index("get_") == 0
-          opt = names.first[4..-1]
-          names.push opt
-          type = :get
-        when args.size == 1 && names.first.index("set_") == 0
-          opt = names.first[4..-1]
-          names.push "#{opt}="
-          opt = "@#{opt}"
-          type = :set
-        when args.size == 1 && names.first.index("add_") == 0
-          opt = "@#{names.first[4..-1]}"
-          type = :add
-        end
-
-        jname = names.first.split "_"
-        jname[1, jname.length].each {|s| s.capitalize!}
-        jname = jname.join("")
-        names.push jname
-
-        args.map! {|a| class2sig(a)}
-        jmethod = Jmi::Method.new self, ret, jname, args
-        names.each do |name|
-          case type
-          when :set
-            define_method(name) do |arg|
-              jmethod.call self, name, [arg]
-              instance_variable_set opt, arg
-            end
-          when :add
-            define_method(name) do |arg|
-              args = [arg]
-              jmethod.call self, name, args
-              list = instance_variable_get opt
-              if list
-                list << arg
-              else
-                instance_variable_set opt, args
-              end
-            end
-          else
-            define_method(name) do |*args|
-              jmethod.call self, name, args
-            end
-          end
-        end
-      end
       def inherited(klass)
         if @path
           klass.instance_variable_set "@class_path", @path
