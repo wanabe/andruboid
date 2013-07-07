@@ -46,11 +46,14 @@ static mrb_value wrap_jobject(mrb_state *mrb, struct RClass *klass, jobject jobj
   return mobj;
 }
 
-typedef mrb_value (*caller_t)(mrb_state*, mrb_value, jmethodID, jvalue*);
+struct RJMethod;
+
+typedef mrb_value (*caller_t)(mrb_state*, mrb_value, struct RJMethod*);
 
 struct RJMethod {
   jmethodID id;
   caller_t caller;
+  struct RClass *klass;
   int argc;
   jvalue *argv;
 };
@@ -63,22 +66,28 @@ static const struct mrb_data_type jmeth_data_type = {
   "jmethod", jmeth_free, 
 };
 
-static mrb_value jmeth_i__call_void(mrb_state *mrb, mrb_value mobj, jmethodID jmeth, jvalue* argv) {
+static mrb_value jmeth_i__call_void(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
 
-  (*env)->CallVoidMethodA(env, (jobject)DATA_PTR(mobj), jmeth, argv);
+  (*env)->CallVoidMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
   return mobj;
 }
 
-static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, jmethodID jmeth, jvalue* argv) {
+static mrb_value jmeth_i__call_obj(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jobject jobj;
+
+  jobj = (*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  return wrap_jobject(mrb, rmeth->klass, jobj);
+}
+
+static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jclass jclazz;
   jobject jobj;
 
-  mrb_value mclass = mrb_obj_value(mrb_obj_class(mrb, mobj));
-  mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
-  jclazz = DATA_PTR(mclass);
-  jobj = (*env)->NewObjectA(env, jclazz, jmeth, argv);
+  jclazz = DATA_PTR(mrb_obj_value(rmeth->klass));
+  jobj = (*env)->NewObjectA(env, jclazz, rmeth->id, rmeth->argv);
   DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
   (*env)->DeleteLocalRef(env, jobj);
   return mobj;
@@ -89,6 +98,7 @@ struct {
   caller_t caller;
 } caller_table[] = {
   {'V', jmeth_i__call_void},
+  {'L', jmeth_i__call_obj},
   {0, 0}
 };
 
@@ -117,9 +127,14 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   ary = mrb_ary_ptr(margs);
   smeth->id = jmeth;
   if (cname[0] == '<') { /* <init> */
+    smeth->klass = mrb_class_ptr(mclass);
     smeth->caller = jmeth_i__call_constructor;
   } else {
-    char c = mrb_string_value_cstr(mrb, &mret)[0];
+    char c;
+
+    smeth->klass = mrb_class_ptr(mret);
+    mret = mrb_funcall(mrb, self, "class2sig", 1, mret);
+    c = mrb_string_value_cstr(mrb, &mret)[0];
     for(i = 0; ; i++) {
       char type = caller_table[i].type;
       if (!type) {
@@ -169,7 +184,7 @@ static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
       } break;
     }
   }
-  mobj = smeth->caller(mrb, mobj, smeth->id, smeth->argv);
+  mobj = smeth->caller(mrb, mobj, smeth);
   for (i = 0; i < ary->len; i++) {
     jvalue *jarg = smeth->argv + i;
     switch(mrb_type(ary->ptr[i])) {

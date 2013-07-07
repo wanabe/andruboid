@@ -8,14 +8,15 @@ module Jmi
 
       textview = TextView.new(self)
       textview.text = "hello world   "
-      layout << textview
 
       button = Button.new(self)
       button.text = "button"
       button.on_click_listener = ClickListener.new do
-        textview.text = "button pushed"
+        textview.text = package_manager.inspect
       end
+
       layout << button
+      layout << textview
     end
   end
 end

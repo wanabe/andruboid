@@ -15,10 +15,14 @@ module Jmi
         class String < CharSequence
         end
       end
-    end 
+    end
     module Android
       module Content
         class Context
+        end
+        module Pm
+          class PackageManager
+          end
         end
       end
       module View
@@ -45,6 +49,7 @@ module Jmi
       module App
         class Activity < Jmi::Object
           define Void, "set_content_view", Android::View::View
+          define Android::Content::Pm::PackageManager, "get_package_manager"
         end
       end
     end

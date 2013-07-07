@@ -20,6 +20,11 @@ public class Andruboid extends Activity{
 	int mrb;
 	String at;
 
+	protected void showError(Throwable e) {
+		new AlertDialog.Builder(this).setTitle(e.getClass().getSimpleName() + " at " + at)
+		.setMessage(e.getMessage()).show();
+	}
+
 	@Override
 	public void onCreate(Bundle state) {
 		super.onCreate(state);
@@ -30,20 +35,16 @@ public class Andruboid extends Activity{
 			at = "run";
 			run(mrb);
 		} catch(Throwable e) {
-			new AlertDialog.Builder(this).setTitle("Error at " + at)
-			.setMessage(e.getMessage()).show();
+			showError(e);
 		}
 	}
 
-	void loadScripts() {
+	void loadScripts() throws IOException {
 		String [] files = {"jmi.rb", "android.rb", "main.rb"};
-		try {
-			for(int i = 0;i < files.length; i++) {
-				at = files[i];
-				InputStream src = getAssets().open(files[i]);
-				evalScript(mrb, new Scanner(src, "UTF-8").useDelimiter("//A").next());
-			}
-		} catch(IOException e) {
+		for(int i = 0;i < files.length; i++) {
+			at = files[i];
+			InputStream src = getAssets().open(files[i]);
+			evalScript(mrb, new Scanner(src, "UTF-8").useDelimiter("//A").next());
 		}
 	}
 

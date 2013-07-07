@@ -38,7 +38,7 @@ module Jmi
       SIG_TABLE[klass]
     end
     def type2sig(ret, args)
-      #ret = class2sig(ret)
+      ret = class2sig(ret)
       #args = args.map{|a| class2sig(a)}
       "(#{args.join("")})#{ret}"
     end
@@ -58,7 +58,7 @@ module Jmi
       attr_reader :init_method
       def define_init(*args)
         args.map! {|a| class2sig(a)}
-        @init_method = Jmi::Method.new self, "V", "<init>", args
+        @init_method = Jmi::Method.new self, Void, "<init>", args
       end
       def define(ret, names, *args)
         type = opt = nil
@@ -85,7 +85,7 @@ module Jmi
         names.push jname
 
         args.map! {|a| class2sig(a)}
-        jmethod = Jmi::Method.new self, class2sig(ret), jname, args
+        jmethod = Jmi::Method.new self, ret, jname, args
         names.each do |name|
           case type
           when :set
