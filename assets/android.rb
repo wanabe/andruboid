@@ -19,7 +19,7 @@ module Jmi
         module List
           extend Generics
           define Int, "size"
-          #define Generics, "get", Int
+          define Generics, "get", Int
         end
       end
     end
@@ -28,7 +28,8 @@ module Jmi
         class Context
         end
         module Pm
-          class ApplicationInfo
+          class ApplicationInfo < Jmi::Object
+            #define 
           end
           class PackageManager < Jmi::Object
             define Java::Util::List[ApplicationInfo], "get_installed_applications", Int

@@ -52,7 +52,10 @@ typedef mrb_value (*caller_t)(mrb_state*, mrb_value, struct RJMethod*);
 struct RJMethod {
   jmethodID id;
   caller_t caller;
-  struct RClass *klass;
+  union {
+    struct RClass *klass;
+    struct RObject *obj;
+  };
   int argc;
   jvalue *argv;
 };
@@ -93,7 +96,7 @@ static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struc
   jclass jclazz;
   jobject jobj;
 
-  jclazz = DATA_PTR(mrb_obj_value(rmeth->klass));
+  jclazz = DATA_PTR(mrb_obj_value(rmeth->obj));
   jobj = (*env)->NewObjectA(env, jclazz, rmeth->id, rmeth->argv);
   DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
   (*env)->DeleteLocalRef(env, jobj);
@@ -112,7 +115,7 @@ struct {
 
 static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  mrb_value mclass, mname, mret, margs, msig;
+  mrb_value miclass, mclass, mname, mret, margs, msig;
   jclass jclazz;
   jmethodID jmeth;
   char *cname, *csig;
@@ -120,8 +123,8 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   int i;
   struct RArray *ary;
 
-  mrb_get_args(mrb, "oooo", &mclass, &mret, &mname, &margs);
-  mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
+  mrb_get_args(mrb, "oooo", &miclass, &mret, &mname, &margs);
+  mclass = mrb_iv_get(mrb, miclass, mrb_intern_cstr(mrb, "jclass"));
   jclazz = DATA_PTR(mclass);
   cname = mrb_string_value_cstr(mrb, &mname);
 
@@ -135,12 +138,19 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   ary = mrb_ary_ptr(margs);
   smeth->id = jmeth;
   if (cname[0] == '<') { /* <init> */
-    smeth->klass = mrb_class_ptr(mclass);
+    smeth->obj = mrb_obj_ptr(mclass);
     smeth->caller = jmeth_i__call_constructor;
   } else {
     char c;
-
+    struct RClass *rmod = mrb_class_get(mrb, "Jmi");
+    
+    rmod = mrb_class_ptr(mrb_const_get(mrb, mrb_obj_value(rmod), mrb_intern_cstr(mrb, "Generics")));
     smeth->klass = mrb_class_ptr(mret);
+    if (rmod == smeth->klass) { /* Generics */
+      miclass = mrb_iv_get(mrb, miclass, mrb_intern_cstr(mrb, "@iclass"));
+      smeth->klass = mrb_class_ptr(miclass);
+    }
+    
     mret = mrb_funcall(mrb, self, "class2sig", 1, mret);
     c = mrb_string_value_cstr(mrb, &mret)[0];
     for(i = 0; ; i++) {

@@ -1,4 +1,6 @@
 module Jmi
+  module Generics
+  end
   module J
     class Void
     end
@@ -29,6 +31,7 @@ module Jmi
     SIG_TABLE = {
       Void => "V",
       Int => "I",
+      Generics => "Ljava/lang/Object;"
     }
     SIG_TABLE.extend self
     SIG_TABLE.default_proc = lambda do |h, k|
@@ -108,6 +111,13 @@ module Jmi
   module Generics
     include JClass
     extend J
+    def define(*args)
+      if @generics && args.include?(Generics)
+        @generics << args
+      else
+        super
+      end
+    end
     def [](iclass)
       klass = @table[iclass]
       unless klass
@@ -116,6 +126,9 @@ module Jmi
         Jmi.set_classpath klass, "#{self}<#{iclass}>"
         klass.include self
         klass.instance_variable_set "@iclass", iclass
+        @generics.each do |args|
+          klass.define *args
+        end
         @table[iclass] = klass
       end
       klass
@@ -123,6 +136,7 @@ module Jmi
     class << self
       def extended(obj)
         obj.instance_variable_set "@table", {}
+        obj.instance_variable_set "@generics", []
         obj.class_path = class_path(obj)
       end
     end
