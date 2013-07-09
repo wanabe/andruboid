@@ -1,6 +1,19 @@
 module Jmi
   module Generics
   end
+  module AsString
+    module Inner
+      def as_string(mod)
+        J::TYPE_TABLE[mod] = "s"
+      end
+      alias inherited as_string
+      def included(mod)
+        as_string(mod)
+        mod.extend Inner
+      end
+    end
+    extend Inner
+  end
   module J
     class Void
     end
@@ -37,10 +50,16 @@ module Jmi
     SIG_TABLE.default_proc = lambda do |h, k|
       h[k] = "L#{SIG_TABLE.class_path(k)};"
     end
+    TYPE_TABLE = {
+      nil => "c"
+    }
     def class2sig(klass)
       SIG_TABLE[klass]
     end
-    def type2sig(ret, args)
+    def class2type(klass)
+      TYPE_TABLE[klass] || SIG_TABLE[klass]
+    end
+    def get_sig(ret, args)
       ret = class2sig(ret)
       #args = args.map{|a| class2sig(a)}
       "(#{args.join("")})#{ret}"

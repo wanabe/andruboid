@@ -75,20 +75,43 @@ static mrb_value jmeth_i__call_void(mrb_state *mrb, mrb_value mobj, struct RJMet
   return mobj;
 }
 
-static mrb_value jmeth_i__call_obj(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
-  JNIEnv* env = (JNIEnv*)mrb->ud;
-  jobject jobj;
-
-  jobj = (*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
-  return wrap_jobject(mrb, rmeth->klass, jobj);
-}
-
 static mrb_value jmeth_i__call_int(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jint ji;
 
   ji = (*env)->CallIntMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
   return mrb_fixnum_value(ji);
+}
+
+static mrb_value jmeth_i__call_str(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jstring jstr;
+  mrb_value mstr = mrb_nil_value();
+  jsize size;
+  const char *cstr;
+
+  jstr = (*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  if (!jstr) {
+    return mrb_nil_value();
+  }
+  size = (*env)->GetStringUTFLength(env, jstr);
+  cstr = (*env)->GetStringUTFChars(env, jstr, NULL);
+  mstr = mrb_str_new(mrb, cstr, size);
+
+  (*env)->ReleaseStringUTFChars(env, jstr, cstr);
+  (*env)->DeleteLocalRef(env, jstr);
+  return mstr;
+}
+
+static mrb_value jmeth_i__call_obj(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jobject jobj;
+
+  jobj = (*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  if (!jobj) {
+    return mrb_nil_value();
+  }
+  return wrap_jobject(mrb, rmeth->klass, jobj);
 }
 
 static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
@@ -109,6 +132,7 @@ struct {
 } caller_table[] = {
   {'V', jmeth_i__call_void},
   {'I', jmeth_i__call_int},
+  {'s', jmeth_i__call_str},
   {'L', jmeth_i__call_obj},
   {0, 0}
 };
@@ -128,7 +152,7 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   jclazz = DATA_PTR(mclass);
   cname = mrb_string_value_cstr(mrb, &mname);
 
-  msig = mrb_funcall(mrb, self, "type2sig", 2, mret, margs);
+  msig = mrb_funcall(mrb, self, "get_sig", 2, mret, margs);
   csig = mrb_string_value_cstr(mrb, &msig);
   jmeth = (*env)->GetMethodID(env, jclazz, cname, csig);
   if ((*env)->ExceptionCheck(env)) {
@@ -150,9 +174,9 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
       miclass = mrb_iv_get(mrb, miclass, mrb_intern_cstr(mrb, "@iclass"));
       smeth->klass = mrb_class_ptr(miclass);
     }
-    
-    mret = mrb_funcall(mrb, self, "class2sig", 1, mret);
-    c = mrb_string_value_cstr(mrb, &mret)[0];
+
+    msig = mrb_funcall(mrb, self, "class2type", 1, mret);
+    c = mrb_string_value_cstr(mrb, &msig)[0];
     for(i = 0; ; i++) {
       char type = caller_table[i].type;
       if (!type) {

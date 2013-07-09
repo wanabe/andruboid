@@ -10,7 +10,8 @@ module Jmi
     end
     module Java
       module Lang
-        class CharSequence
+        class CharSequence < Jmi::Object
+          include AsString
         end
         class String < CharSequence
         end
@@ -28,8 +29,11 @@ module Jmi
         class Context
         end
         module Pm
+          class PackageManager < Jmi::Object
+          end
           class ApplicationInfo < Jmi::Object
-            #define 
+            define Java::Lang::CharSequence, "load_description", PackageManager
+            define Java::Lang::String, "to_string"
           end
           class PackageManager < Jmi::Object
             define Java::Util::List[ApplicationInfo], "get_installed_applications", Int
