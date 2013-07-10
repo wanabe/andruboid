@@ -17,9 +17,8 @@ module Jmi
         buffer = ""
         (0..20).each do |i|
           app = list.get(i)
-          tos = app.to_string
           desc = app.load_description(pm)
-          buffer += "#{tos} #{desc}\n"
+          buffer += "#{app} #{desc}\n"
         end
         textview.text = buffer
       end

@@ -76,19 +76,29 @@ module Jmi
       type = opt = nil
       names = [names] unless names.is_a? Array
 
-      case
-      when args.size == 0 && names.first.index("get_") == 0
-        opt = names.first[4..-1]
-        names.push opt
-        type = :get
-      when args.size == 1 && names.first.index("set_") == 0
-        opt = names.first[4..-1]
-        names.push "#{opt}="
-        opt = "@#{opt}"
-        type = :set
-      when args.size == 1 && names.first.index("add_") == 0
-        opt = "@#{names.first[4..-1]}"
-        type = :add
+      name = names.first
+      argc = args.size
+      case argc
+      when 0
+        case
+        when name.index("get_") == 0
+          opt = name[4..-1]
+          names.push opt
+          type = :get
+        when name == "to_string"
+          names.push "to_s"
+        end
+      when 1
+        case
+        when name.index("set_") == 0
+          opt = names.first[4..-1]
+          names.push "#{opt}="
+          opt = "@#{opt}"
+          type = :set
+        when name.index("add_") == 0
+          opt = "@#{names.first[4..-1]}"
+          type = :add
+        end
       end
 
       jname = names.first.split "_"
