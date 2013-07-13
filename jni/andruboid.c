@@ -146,19 +146,6 @@ static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struc
   return mobj;
 }
 
-struct {
-  char type;
-  caller_t caller;
-  caller_t caller_static;
-} caller_table[] = {
-  {'V', jmeth_i__call_void},
-  {'Z', jmeth_i__call_bool},
-  {'I', jmeth_i__call_int},
-  {'s', jmeth_i__call_str},
-  {'L', jmeth_i__call_obj, jmeth_i__call_obj_static},
-  {0, 0}
-};
-
 static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   mrb_value miclass, mclass, mname, mret, margs, msig;
@@ -166,7 +153,7 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   jmethodID jmeth;
   char *cname, *csig;
   struct RJMethod *smeth = (struct RJMethod *)malloc(sizeof(struct RJMethod));
-  int i, is_static = 0;
+  int is_static = 0;
   struct RArray *ary;
 
   mrb_get_args(mrb, "oooo", &miclass, &mret, &mname, &margs);
@@ -207,16 +194,30 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
 
     msig = mrb_funcall(mrb, self, "class2type", 1, mret);
     c = mrb_string_value_cstr(mrb, &msig)[0];
-    for(i = 0; ; i++) {
-      char type = caller_table[i].type;
-      if (!type) {
-        mrb_raisef(mrb, E_RUNTIME_ERROR, "Jmi: return type not found");
-        break;
-      }
-      if (c == type) {
-        smeth->caller = (&caller_table[i].caller)[is_static];
-        break;
-      }
+    switch(c) {
+      case 'V': {
+        smeth->caller = is_static ? 
+          NULL : jmeth_i__call_void;
+      } break;
+      case 'Z': {
+        smeth->caller = is_static ? 
+          NULL : jmeth_i__call_bool;
+      } break;
+      case 'I': {
+        smeth->caller = is_static ? 
+          NULL : jmeth_i__call_int;
+      } break;
+      case 's': {
+        smeth->caller = is_static ? 
+          NULL : jmeth_i__call_str;
+      } break;
+      case 'L': {
+        smeth->caller = is_static ? 
+          jmeth_i__call_obj_static : jmeth_i__call_obj;
+      } break;
+      default: {
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "Jmi: return type error: %S", msig);
+      } break;
     }
   }
   smeth->argc = ary->len;
