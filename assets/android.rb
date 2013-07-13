@@ -70,6 +70,7 @@ module Jmi
           attach_init Android::Content::Context
           attach Void, "set_checked", Bool
           attach Bool, "is_checked"
+          attach Void, "set_text", Java::Lang::CharSequence
           attach Void, "set_on_click_listener", Android::View::View::OnClickListener
         end
       end
@@ -85,6 +86,9 @@ module Jmi
   class Main < J::Android::App::Activity
     def initialize
       Jmi::Main.main = self
+    end
+    def exit
+      raise SystemExit
     end
     class << self
       attr_accessor :main

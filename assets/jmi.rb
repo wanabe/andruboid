@@ -1,3 +1,6 @@
+class SystemExit < Exception
+end
+
 module Jmi
   module Generics
   end

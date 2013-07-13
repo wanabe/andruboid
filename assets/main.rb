@@ -5,23 +5,26 @@ module Jmi
       super
       layout = LinearLayout.new(self)
       self.content_view = layout
-      main = self
 
       textview = TextView.new(self)
       textview.text = "hello world   "
 
       checkbox = CheckBox.new(self)
       checkbox.checked = true
-
-      button = Button.new(self)
-      button.text = "button"
-      button.on_click_listener = ClickListener.new do
-        Toast.make_text(main, "checkbox is #{checkbox.is_checked}", Toast::LENGTH_SHORT).show
+      checkbox.text = "check_box"
+      checkbox.on_click_listener = ClickListener.new do
+        Toast.make_text(self, "checkbox is #{checkbox.is_checked}", Toast::LENGTH_SHORT).show
       end
 
-      layout << button
+      button = Button.new(self)
+      button.text = "exit"
+      button.on_click_listener = ClickListener.new do
+        exit
+      end
+
       layout << textview
       layout << checkbox
+      layout << button
     end
   end
 end

@@ -18,8 +18,13 @@ public class Andruboid extends Activity{
 	String at;
 
 	protected void showError(Throwable e) {
-		new AlertDialog.Builder(this).setTitle(e.getClass().getSimpleName() + " at " + at)
-		.setMessage(e.getMessage()).show();
+		String msg = e.getMessage();
+		if (msg.equals("SystemExit: SystemExit")) {
+			finish();
+		} else {
+			new AlertDialog.Builder(this).setTitle(e.getClass().getSimpleName() + " at " + at)
+				.setMessage(msg).show();
+		}
 	}
 
 	@Override
@@ -75,8 +80,8 @@ public class Andruboid extends Activity{
 		try {
 			click(mrb, id);
 		} catch(Throwable e) {
-			new AlertDialog.Builder(this).setTitle("Error at OnClick")
-				.setMessage(e.getMessage()).show();
+			at = "OnClick";
+			showError(e);
 		}
 	}
 
