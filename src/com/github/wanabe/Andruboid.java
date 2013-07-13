@@ -1,18 +1,15 @@
 package com.github.wanabe;
 
-import android.app.Activity;
-import android.widget.TextView;
-import android.os.Bundle;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.FileOutputStream;
 import java.io.File;
-import android.content.pm.PackageManager;
-import android.content.pm.ApplicationInfo;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipEntry;
-import java.util.Enumeration;
+import java.io.InputStream;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.Scanner;
+import android.os.Bundle;
+import android.os.Environment;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.view.View;
 
@@ -31,7 +28,7 @@ public class Andruboid extends Activity{
 		try {
 			at = "initialze";
 			mrb = initialize();
-			loadScripts();
+			loadScripts("andruboid");
 			at = "run";
 			run(mrb);
 		} catch(Throwable e) {
@@ -39,12 +36,38 @@ public class Andruboid extends Activity{
 		}
 	}
 
-	void loadScripts() throws IOException {
-		String [] files = {"jmi.rb", "android.rb", "main.rb"};
-		for(int i = 0;i < files.length; i++) {
-			at = files[i];
-			InputStream src = getAssets().open(files[i]);
-			evalScript(mrb, new Scanner(src, "UTF-8").useDelimiter("//A").next());
+	Scanner loadAsset(File dir, String name, String pattern) throws IOException {
+		InputStream src;
+		if (dir == null) {
+			src = getAssets().open(name);
+		} else {
+			File file = new File(dir, name);
+			if (!file.exists()) {
+				BufferedWriter out = new BufferedWriter(new FileWriter(file));
+				out.write(loadAsset(null, name));
+				out.close();
+			}
+			src = new FileInputStream(file);
+		}
+		return new Scanner(src, "UTF-8").useDelimiter(pattern);
+	}
+
+	String loadAsset(File dir, String name) throws IOException {
+		return loadAsset(dir, name, "\\A").next();
+	}
+
+	void loadScripts(String dirName) throws IOException {
+		File dir = new File(Environment.getExternalStorageDirectory(), dirName);
+		if (!dir.exists()) {
+			dir.mkdir();
+		}
+
+		Scanner recipe = loadAsset(dir, "recipe", "\n");
+		while(recipe.hasNext()) {
+			at = recipe.next();
+			if (at.contains(".rb")) {
+				evalScript(mrb, loadAsset(dir, at));
+			}
 		}
 	}
 
