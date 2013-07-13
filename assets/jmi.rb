@@ -71,21 +71,21 @@ module Jmi
   module JClass
     include Jmi::J
     attr_reader :init_method
-    def define_init(*args)
+    def attach_init(*args)
       args.map! {|a| class2sig(a)}
       @init_method = Jmi::Method.new self, Void, "<init>", args
     end
-    def define(ret, names, *args)
-      define_at self, ret, names, *args
+    def attach(ret, names, *args)
+      attach_at self, ret, names, *args
     end
-    def define_static(ret, names, *args)
-      define_at singleton_class, ret, names, *args
+    def attach_static(ret, names, *args)
+      attach_at singleton_class, ret, names, *args
     end
-    def define_const(ret, name)
+    def attach_const(ret, name)
       val = Jmi.get_field_static self, ret, name
       const_set name, val
     end
-    def define_at(klass, ret, names, *args)
+    def attach_at(klass, ret, names, *args)
       type = opt = nil
       names = [names] unless names.is_a? Array
 
@@ -153,7 +153,7 @@ module Jmi
   module Generics
     include JClass
     extend J
-    def define(*args)
+    def attach(*args)
       if @generics && args.include?(Generics)
         @generics << args
       else
@@ -169,7 +169,7 @@ module Jmi
         klass.include self
         klass.instance_variable_set "@iclass", iclass
         @generics.each do |args|
-          klass.define *args
+          klass.attach *args
         end
         @table[iclass] = klass
       end

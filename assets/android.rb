@@ -19,8 +19,8 @@ module Jmi
       module Util
         module List
           extend Generics
-          define Int, "size"
-          define Generics, "get", Int
+          attach Int, "size"
+          attach Generics, "get", Int
         end
       end
     end
@@ -32,11 +32,11 @@ module Jmi
           class PackageManager < Jmi::Object
           end
           class ApplicationInfo < Jmi::Object
-            define Java::Lang::CharSequence, "load_description", PackageManager
-            define Java::Lang::String, "to_string"
+            attach Java::Lang::CharSequence, "load_description", PackageManager
+            attach Java::Lang::String, "to_string"
           end
           class PackageManager < Jmi::Object
-            define Java::Util::List[ApplicationInfo], "get_installed_applications", Int
+            attach Java::Util::List[ApplicationInfo], "get_installed_applications", Int
           end
         end
       end
@@ -48,35 +48,35 @@ module Jmi
       end
       module Widget
         class LinearLayout < Jmi::Object
-          define_init Android::Content::Context
-          define Void, ["add_view", "<<"], Android::View::View
+          attach_init Android::Content::Context
+          attach Void, ["add_view", "<<"], Android::View::View
         end
         class TextView < Jmi::Object
-          define_init Android::Content::Context
-          define Void, "set_text", Java::Lang::CharSequence
+          attach_init Android::Content::Context
+          attach Void, "set_text", Java::Lang::CharSequence
         end
         class Button < Jmi::Object
-          define_init Android::Content::Context
-          define Void, "set_text", Java::Lang::CharSequence
-          define Void, "set_on_click_listener", Android::View::View::OnClickListener
+          attach_init Android::Content::Context
+          attach Void, "set_text", Java::Lang::CharSequence
+          attach Void, "set_on_click_listener", Android::View::View::OnClickListener
         end
         class Toast < Jmi::Object
-          define_const Int, "LENGTH_SHORT"
-          define_const Int, "LENGTH_LONG"
-          define_static Toast, "make_text", Android::Content::Context, Java::Lang::CharSequence, Int
-          define Void, "show"
+          attach_const Int, "LENGTH_SHORT"
+          attach_const Int, "LENGTH_LONG"
+          attach_static Toast, "make_text", Android::Content::Context, Java::Lang::CharSequence, Int
+          attach Void, "show"
         end
         class CheckBox < Jmi::Object
-          define_init Android::Content::Context
-          define Void, "set_checked", Bool
-          define Bool, "is_checked"
-          define Void, "set_on_click_listener", Android::View::View::OnClickListener
+          attach_init Android::Content::Context
+          attach Void, "set_checked", Bool
+          attach Bool, "is_checked"
+          attach Void, "set_on_click_listener", Android::View::View::OnClickListener
         end
       end
       module App
         class Activity < Jmi::Object
-          define Void, "set_content_view", Android::View::View
-          define Android::Content::Pm::PackageManager, "get_package_manager"
+          attach Void, "set_content_view", Android::View::View
+          attach Android::Content::Pm::PackageManager, "get_package_manager"
         end
       end
     end
@@ -97,7 +97,7 @@ module Jmi
 
   class ClickListener < Jmi::Object.force_path("com/github/wanabe/Andruboid$ClickListener")
     @table = []
-    define_init Com::Github::Wanabe::Andruboid,Int
+    attach_init Com::Github::Wanabe::Andruboid,Int
     def initialize(&block)
       klass = self.class
       id = klass.push block
