@@ -66,6 +66,12 @@ module Jmi
           define_static Toast, "make_text", Android::Content::Context, Java::Lang::CharSequence, Int
           define Void, "show"
         end
+        class CheckBox < Jmi::Object
+          define_init Android::Content::Context
+          define Void, "set_checked", Bool
+          define Bool, "is_checked"
+          define Void, "set_on_click_listener", Android::View::View::OnClickListener
+        end
       end
       module App
         class Activity < Jmi::Object

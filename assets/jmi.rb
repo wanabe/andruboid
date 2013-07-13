@@ -17,6 +17,8 @@ module Jmi
   module J
     class Void
     end
+    class Bool
+    end
     class Int
     end
     def class_path(klass)
@@ -43,6 +45,7 @@ module Jmi
     end
     SIG_TABLE = {
       Void => "V",
+      Bool => "Z",
       Int => "I",
       Generics => "Ljava/lang/Object;"
     }

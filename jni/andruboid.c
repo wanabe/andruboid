@@ -75,6 +75,14 @@ static mrb_value jmeth_i__call_void(mrb_state *mrb, mrb_value mobj, struct RJMet
   return mobj;
 }
 
+static mrb_value jmeth_i__call_bool(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jboolean jb;
+
+  jb = (*env)->CallBooleanMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  return mrb_bool_value(jb);
+}
+
 static mrb_value jmeth_i__call_int(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jint ji;
@@ -144,6 +152,7 @@ struct {
   caller_t caller_static;
 } caller_table[] = {
   {'V', jmeth_i__call_void},
+  {'Z', jmeth_i__call_bool},
   {'I', jmeth_i__call_int},
   {'s', jmeth_i__call_str},
   {'L', jmeth_i__call_obj, jmeth_i__call_obj_static},
@@ -236,11 +245,15 @@ static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
     mrb_value item = ary->ptr[i];
     jvalue *jarg = smeth->argv + i;
     switch(mrb_type(item)) {
-      case MRB_TT_DATA: {
-        jarg->l = (jobject)DATA_PTR(item);
+      case MRB_TT_FALSE:
+      case MRB_TT_TRUE: {
+        jarg->z = mrb_bool(item);
       } break;
       case MRB_TT_FIXNUM: {
         jarg->i = mrb_fixnum(item);
+      } break;
+      case MRB_TT_DATA: {
+        jarg->l = (jobject)DATA_PTR(item);
       } break;
       case MRB_TT_STRING: {
         jarg->l = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &item));
