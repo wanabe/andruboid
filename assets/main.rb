@@ -5,6 +5,7 @@ module Jmi
       super
       layout = LinearLayout.new(self)
       self.content_view = layout
+      main = self
 
       textview = TextView.new(self)
       textview.text = "hello world   "
@@ -12,15 +13,7 @@ module Jmi
       button = Button.new(self)
       button.text = "button"
       button.on_click_listener = ClickListener.new do
-        pm = package_manager
-        list = pm.get_installed_applications(0)
-        buffer = ""
-        (0..20).each do |i|
-          app = list.get(i)
-          desc = app.load_description(pm)
-          buffer += "#{app} #{desc}\n"
-        end
-        textview.text = buffer
+        Toast.make_text(main, "Toast!", Toast::LENGTH_SHORT).show
       end
 
       layout << button

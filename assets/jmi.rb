@@ -73,6 +73,16 @@ module Jmi
       @init_method = Jmi::Method.new self, Void, "<init>", args
     end
     def define(ret, names, *args)
+      define_at self, ret, names, *args
+    end
+    def define_static(ret, names, *args)
+      define_at singleton_class, ret, names, *args
+    end
+    def define_const(ret, name)
+      val = Jmi.get_field_static self, ret, name
+      const_set name, val
+    end
+    def define_at(klass, ret, names, *args)
       type = opt = nil
       names = [names] unless names.is_a? Array
 
@@ -107,16 +117,16 @@ module Jmi
       names.push jname
 
       args.map! {|a| class2sig(a)}
-      jmethod = Jmi::Method.new self, ret, jname, args
+      jmethod = Jmi::Method.new klass, ret, jname, args
       names.each do |name|
         case type
         when :set
-          define_method(name) do |arg|
+          klass.define_method(name) do |arg|
             jmethod.call self, name, [arg]
             instance_variable_set opt, arg
           end
         when :add
-          define_method(name) do |arg|
+          klass.define_method(name) do |arg|
             args = [arg]
             jmethod.call self, name, args
             list = instance_variable_get opt
@@ -127,7 +137,7 @@ module Jmi
             end
           end
         else
-          define_method(name) do |*args|
+          klass.define_method(name) do |*args|
             jmethod.call self, name, args
           end
         end
@@ -192,7 +202,7 @@ module Jmi
       def force_path(path)
         @path = path
         Jmi::Object
-      end  
+      end
     end
   end
 end

@@ -60,6 +60,12 @@ module Jmi
           define Void, "set_text", Java::Lang::CharSequence
           define Void, "set_on_click_listener", Android::View::View::OnClickListener
         end
+        class Toast < Jmi::Object
+          define_const Int, "LENGTH_SHORT"
+          define_const Int, "LENGTH_LONG"
+          define_static Toast, "make_text", Android::Content::Context, Java::Lang::CharSequence, Int
+          define Void, "show"
+        end
       end
       module App
         class Activity < Jmi::Object

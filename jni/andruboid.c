@@ -114,6 +114,18 @@ static mrb_value jmeth_i__call_obj(mrb_state *mrb, mrb_value mobj, struct RJMeth
   return wrap_jobject(mrb, rmeth->klass, jobj);
 }
 
+static mrb_value jmeth_i__call_obj_static(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jobject jobj;
+
+  mobj = mrb_iv_get(mrb, mobj, mrb_intern_cstr(mrb, "jclass"));
+  jobj = (*env)->CallStaticObjectMethodA(env, (jclass)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  if (!jobj) {
+    return mrb_nil_value();
+  }
+  return wrap_jobject(mrb, rmeth->klass, jobj);
+}
+
 static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jclass jclazz;
@@ -129,11 +141,12 @@ static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struc
 struct {
   char type;
   caller_t caller;
+  caller_t caller_static;
 } caller_table[] = {
   {'V', jmeth_i__call_void},
   {'I', jmeth_i__call_int},
   {'s', jmeth_i__call_str},
-  {'L', jmeth_i__call_obj},
+  {'L', jmeth_i__call_obj, jmeth_i__call_obj_static},
   {0, 0}
 };
 
@@ -144,17 +157,25 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   jmethodID jmeth;
   char *cname, *csig;
   struct RJMethod *smeth = (struct RJMethod *)malloc(sizeof(struct RJMethod));
-  int i;
+  int i, is_static = 0;
   struct RArray *ary;
 
   mrb_get_args(mrb, "oooo", &miclass, &mret, &mname, &margs);
+  if (mrb_type(miclass) == MRB_TT_SCLASS) {
+    is_static = 1;
+    miclass = mrb_iv_get(mrb, miclass, mrb_intern_cstr(mrb, "__attached__"));
+  }
   mclass = mrb_iv_get(mrb, miclass, mrb_intern_cstr(mrb, "jclass"));
   jclazz = DATA_PTR(mclass);
   cname = mrb_string_value_cstr(mrb, &mname);
 
   msig = mrb_funcall(mrb, self, "get_sig", 2, mret, margs);
   csig = mrb_string_value_cstr(mrb, &msig);
-  jmeth = (*env)->GetMethodID(env, jclazz, cname, csig);
+  if (is_static) {
+    jmeth = (*env)->GetStaticMethodID(env, jclazz, cname, csig);
+  } else {
+    jmeth = (*env)->GetMethodID(env, jclazz, cname, csig);
+  }
   if ((*env)->ExceptionCheck(env)) {
     mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get %S%S", mname, msig);
   }
@@ -184,7 +205,7 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
         break;
       }
       if (c == type) {
-        smeth->caller = caller_table[i].caller;
+        smeth->caller = (&caller_table[i].caller)[is_static];
         break;
       }
     }
@@ -245,11 +266,41 @@ static mrb_value jmi_s__set_class_path(mrb_state *mrb, mrb_value self) {
   return mrb_nil_value();
 }
 
+static mrb_value jmi_s__get_field_static(mrb_state *mrb, mrb_value self) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  mrb_value mmod, mstr, mclass, mret, mname;
+  jfieldID fid;
+  jclass jclazz;
+  char *cname, *cstr;
+
+  mmod = mrb_const_get(mrb, self, mrb_intern_cstr(mrb, "Object"));
+  mrb_get_args(mrb, "ooo", &mclass, &mret, &mname);
+  mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
+  jclazz = DATA_PTR(mclass);
+
+  cname = mrb_string_value_cstr(mrb, &mname);
+  mstr = mrb_funcall(mrb, mmod, "class2sig", 1, mret);
+  cstr = mrb_string_value_cstr(mrb, &mstr);
+  fid = (*env)->GetStaticFieldID(env, jclazz, cname, cstr);
+  mstr = mrb_funcall(mrb, mmod, "class2type", 1, mret);
+  cstr = mrb_string_value_cstr(mrb, &mstr);
+  switch (cstr[0]) {
+    case 'I': {
+      jint jval;
+      jval = (*env)->GetStaticIntField(env, jclazz, fid);
+      return mrb_fixnum_value(jval);
+    } break;
+  }
+  mrb_raisef(mrb, E_RUNTIME_ERROR, "unsupported field: %S", mstr);
+  return mrb_nil_value();
+}
+
 static struct RClass *init_jmi(mrb_state *mrb) {
   struct RClass *klass, *mod;
   mod = mrb_define_module(mrb, 
     "Jmi");
   mrb_define_singleton_method(mrb, (struct RObject *)mod, "set_classpath", jmi_s__set_class_path, ARGS_REQ(2));
+  mrb_define_singleton_method(mrb, (struct RObject *)mod, "get_field_static", jmi_s__get_field_static, ARGS_REQ(3));
 
   klass = mrb_define_module_under(mrb, mod,
     "JClass");
