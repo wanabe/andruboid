@@ -73,6 +73,16 @@ module Jmi
           attach Void, "set_text", Java::Lang::CharSequence
           attach Void, "set_on_click_listener", Android::View::View::OnClickListener
         end
+        class RadioGroup < LinearLayout
+          module OnCheckedChangeListener
+          end
+          attach_init Android::Content::Context
+          attach Int, "get_checked_radio_button_id"
+          attach Void, "set_on_checked_change_listener", Android::Widget::RadioGroup::OnCheckedChangeListener
+        end
+        class RadioButton < Button
+          attach Int, "get_id"
+        end
       end
       module App
         class Activity < Jmi::Object
@@ -99,12 +109,12 @@ module Jmi
     end
   end
 
-  class ClickListener < Jmi::Object.force_path("com/github/wanabe/Andruboid$ClickListener")
+  class Listener < Jmi::Object.force_path("com/github/wanabe/Andruboid$Listener")
     @table = []
     attach_init Com::Github::Wanabe::Andruboid,Int
-    def initialize(&block)
-      klass = self.class
-      id = klass.push block
+    def initialize(arg = nil, &block)
+      block ||= arg
+      id = self.class.push block
       super Jmi::Main.main, id
     end
     class << self
@@ -113,7 +123,7 @@ module Jmi
         @table.push block
         id
       end
-      def call(id)
+      def call(type, id)
         @table[id].call
       end
     end

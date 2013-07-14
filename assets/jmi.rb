@@ -76,6 +76,7 @@ module Jmi
     attr_reader :init_method
     def attach_init(*args)
       args.map! {|a| class2sig(a)}
+      @init_args = args
       @init_method = Jmi::Method.new self, Void, "<init>", args
     end
     def attach(ret, names, *args)
@@ -204,6 +205,10 @@ module Jmi
           return
         end
         klass.class_path = class_path(klass)
+        if @init_args
+          init_method = Jmi::Method.new klass, Void, "<init>", @init_args
+          klass.instance_variable_set "@init_method", init_method
+        end
       end
       def force_path(path)
         @path = path

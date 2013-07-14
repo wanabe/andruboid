@@ -393,13 +393,13 @@ void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) 
   check_exc(mrb);
 }
 
-void Java_com_github_wanabe_Andruboid_click(JNIEnv* env, jobject thiz, jint jmrb, jint jid) {
+void Java_com_github_wanabe_Andruboid_handle(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid) {
   mrb_state *mrb = (mrb_state *)jmrb;
   int ai = mrb_gc_arena_save(mrb);
   struct RClass *mod = mrb_class_get(mrb, "Jmi");
-  mrb_value mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "ClickListener"));
+  mrb_value mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Listener"));
 
-  mrb_funcall(mrb, mclass, "call", 1, mrb_fixnum_value(jid));
+  mrb_funcall(mrb, mclass, "call", 2, mrb_fixnum_value(jtype), mrb_fixnum_value(jid));
   mrb_gc_arena_restore(mrb, ai);
   check_exc(mrb);
 }

@@ -12,6 +12,7 @@ import android.os.Environment;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.view.View;
+import android.widget.RadioGroup;
 
 public class Andruboid extends Activity{
 	int mrb;
@@ -76,11 +77,11 @@ public class Andruboid extends Activity{
 		}
 	}
 
-	void handleClick(int id) {
+	void handleEvent(int type, int id) {
 		try {
-			click(mrb, id);
+			handle(mrb, type, id);
 		} catch(Throwable e) {
-			at = "OnClick";
+			at = "handle " + Integer.toString(type);
 			showError(e);
 		}
 	}
@@ -88,24 +89,34 @@ public class Andruboid extends Activity{
 	public native int initialize();
 	public native void evalScript(int mrb, String scr);
 	public native void run(int mrb);
-	public native void click(int mrb, int id);
+	public native void handle(int mrb, int type, int id);
 
 	static {
 		System.loadLibrary("andruboid");
 	}
-	
-	static class ClickListener implements View.OnClickListener {
+
+	static class Listener implements 
+	  View.OnClickListener, 
+	  RadioGroup.OnCheckedChangeListener {
+		private static final int
+		  ON_CLICK = 0,
+		  ON_CHECKED_CHANGE = 1;
 		Andruboid self;
 		int id;
 
-		public ClickListener(Andruboid self, int id) {
+		public Listener(Andruboid self, int id) {
 			this.self = self;
 			this.id = id;
 		}
 
 		@Override
 		public void onClick(View v) {
-			self.handleClick(id);
+			self.handleEvent(ON_CLICK, id);
+		}
+
+		@Override
+		public void onCheckedChanged(RadioGroup rg, int checkedId) {
+			self.handleEvent(ON_CHECKED_CHANGE, id);
 		}
 	}
 }
