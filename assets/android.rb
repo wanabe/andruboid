@@ -40,23 +40,30 @@ module Jmi
           end
         end
       end
+      module Graphics
+        class Typeface < Jmi::Object
+          attach_const self, "MONOSPACE"
+        end
+      end
       module View
-        class View
+        class View < Jmi::Object
           module OnClickListener
           end
+          attach_init Android::Content::Context
         end
       end
       module Widget
-        class LinearLayout < Jmi::Object
-          attach_init Android::Content::Context
+        class LinearLayout < Android::View::View
+          attach_const Int, "HORIZONTAL"
+          attach_const Int, "VERTICAL"
           attach Void, ["add_view", "<<"], Android::View::View
+          attach Void, "set_orientation", Int
         end
-        class TextView < Jmi::Object
-          attach_init Android::Content::Context
+        class TextView < Android::View::View
           attach Void, "set_text", Java::Lang::CharSequence
+          attach Void, "set_typeface", Android::Graphics::Typeface
         end
-        class Button < Jmi::Object
-          attach_init Android::Content::Context
+        class Button < Android::View::View
           attach Void, "set_text", Java::Lang::CharSequence
           attach Void, "set_on_click_listener", Android::View::View::OnClickListener
         end
@@ -66,8 +73,7 @@ module Jmi
           attach_static Toast, "make_text", Android::Content::Context, Java::Lang::CharSequence, Int
           attach Void, "show"
         end
-        class CheckBox < Jmi::Object
-          attach_init Android::Content::Context
+        class CheckBox < Android::View::View
           attach Void, "set_checked", Bool
           attach Bool, "is_checked"
           attach Void, "set_text", Java::Lang::CharSequence
@@ -76,12 +82,13 @@ module Jmi
         class RadioGroup < LinearLayout
           module OnCheckedChangeListener
           end
-          attach_init Android::Content::Context
           attach Int, "get_checked_radio_button_id"
           attach Void, "set_on_checked_change_listener", Android::Widget::RadioGroup::OnCheckedChangeListener
         end
         class RadioButton < Button
           attach Int, "get_id"
+        end
+        class EditText < TextView
         end
       end
       module App

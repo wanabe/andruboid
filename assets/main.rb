@@ -1,10 +1,16 @@
 module Jmi
   class Andruboid < Main
     include Android::Widget
+    include Android::Graphics
     def initialize
       super
+
+      vlayout = LinearLayout.new(self)
+      vlayout.orientation = LinearLayout::VERTICAL
+      self.content_view = vlayout
+
       layout = LinearLayout.new(self)
-      self.content_view = layout
+      vlayout << layout
 
       textview = TextView.new(self)
       textview.text = "hello world   "
@@ -36,6 +42,14 @@ module Jmi
       layout << checkbox
       layout << textview
       layout << button
+
+      layout = LinearLayout.new(self)
+      vlayout << layout
+
+      edittext = EditText.new(self)
+      edittext.typeface = Typeface::MONOSPACE
+
+      layout << edittext
     end
   end
 end

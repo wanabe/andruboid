@@ -207,6 +207,7 @@ module Jmi
         klass.class_path = class_path(klass)
         if @init_args
           init_method = Jmi::Method.new klass, Void, "<init>", @init_args
+          klass.instance_variable_set "@init_args", @init_args
           klass.instance_variable_set "@init_method", init_method
         end
       end

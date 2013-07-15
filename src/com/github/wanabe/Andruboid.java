@@ -13,6 +13,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.view.View;
 import android.widget.RadioGroup;
+import android.content.DialogInterface;
 
 public class Andruboid extends Activity{
 	int mrb;
@@ -23,8 +24,15 @@ public class Andruboid extends Activity{
 		if (msg.equals("SystemExit: SystemExit")) {
 			finish();
 		} else {
-			new AlertDialog.Builder(this).setTitle(e.getClass().getSimpleName() + " at " + at)
-				.setMessage(msg).show();
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setTitle(e.getClass().getSimpleName() + " at " + at).setMessage(msg);
+			builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					finish();
+				}
+			});
+			builder.show();
 		}
 	}
 

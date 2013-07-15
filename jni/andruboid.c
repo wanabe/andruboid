@@ -304,6 +304,11 @@ static mrb_value jmi_s__get_field_static(mrb_state *mrb, mrb_value self) {
       jval = (*env)->GetStaticIntField(env, jclazz, fid);
       return mrb_fixnum_value(jval);
     } break;
+    case 'L': {
+      jobject jval;
+      jval = (*env)->GetStaticObjectField(env, jclazz, fid);
+      return wrap_jobject(mrb, mrb_class_ptr(mret), jval);
+    } break;
   }
   mrb_raisef(mrb, E_RUNTIME_ERROR, "unsupported field: %S", mstr);
   return mrb_nil_value();

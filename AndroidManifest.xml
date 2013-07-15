@@ -5,7 +5,7 @@
       android:versionName="0.0.1">
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-sdk android:minSdkVersion="4" />
-    <application android:label="Andruboid" android:debuggable="true">
+    <application android:label="Andruboid">
         <activity android:name="Andruboid"
                   android:label="Andruboid">
             <intent-filter>
