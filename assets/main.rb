@@ -40,14 +40,15 @@ module Jmi
 
       layout << radiogroup
       layout << checkbox
-      layout << textview
       layout << button
+      layout << textview
 
       layout = LinearLayout.new(self)
       vlayout << layout
 
       edittext = EditText.new(self)
       edittext.typeface = Typeface::MONOSPACE
+      edittext.text = vlayout.get_class.get_fields[0].to_s
 
       layout << edittext
     end

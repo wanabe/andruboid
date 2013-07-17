@@ -8,22 +8,6 @@ module Jmi
         end
       end
     end
-    module Java
-      module Lang
-        class CharSequence < Jmi::Object
-          include AsString
-        end
-        class String < CharSequence
-        end
-      end
-      module Util
-        module List
-          extend Generics
-          attach Int, "size"
-          attach Generics, "get", Int
-        end
-      end
-    end
     module Android
       module Content
         class Context
@@ -46,7 +30,7 @@ module Jmi
         end
       end
       module View
-        class View < Jmi::Object
+        class View < Java::Lang::Object
           module OnClickListener
           end
           attach_init Android::Content::Context

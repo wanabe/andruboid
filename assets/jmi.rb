@@ -28,7 +28,7 @@ module Jmi
       path = klass.instance_variable_get "@class_path"
       return path if path
 
-      until (path = klass.to_s).index("Jmi::J::")
+      until (path = klass.to_s).index("Jmi::J::") == 0
         klass = klass.superclass
         raise "#{self} is not Java class/interface" unless klass
       end
@@ -59,15 +59,24 @@ module Jmi
     TYPE_TABLE = {
       nil => "c"
     }
+    def class2item(klass, table)
+      prefix = ""
+      while klass.is_a? Array
+        klass = klass.first
+        prefix += "["
+      end
+      item = table[klass]
+      return nil unless item
+      prefix + item
+    end
     def class2sig(klass)
-      SIG_TABLE[klass]
+      class2item(klass, SIG_TABLE)
     end
     def class2type(klass)
-      TYPE_TABLE[klass] || SIG_TABLE[klass]
+      class2item(klass, TYPE_TABLE) || class2sig(klass)
     end
     def get_sig(ret, args)
       ret = class2sig(ret)
-      #args = args.map{|a| class2sig(a)}
       "(#{args.join("")})#{ret}"
     end
   end
