@@ -39,9 +39,11 @@ static mrb_value jclass__set_class_path(mrb_state *mrb, mrb_value self) {
 static mrb_value wrap_jobject(mrb_state *mrb, struct RClass *klass, jobject jobj) {
   mrb_value mobj;
   JNIEnv* env = (JNIEnv*)mrb->ud;
+  jobject jglobal;
 
-  jobj = (*env)->NewGlobalRef(env, jobj);
-  mobj = mrb_obj_value(Data_Wrap_Struct(mrb, klass, &jobj_data_type, (void*)jobj));
+  jglobal = (*env)->NewGlobalRef(env, jobj);
+  mobj = mrb_obj_value(Data_Wrap_Struct(mrb, klass, &jobj_data_type, (void*)jglobal));
+  (*env)->DeleteLocalRef(env, jobj);
   return mobj;
 }
 
@@ -159,6 +161,7 @@ static mrb_value jmeth_i__call_obj_ary(mrb_state *mrb, mrb_value mobj, struct RJ
     mitem = wrap_jobject(mrb, rmeth->opt1.klass, jobj);
     mrb_ary_push(mrb, mary, mitem);
   }
+  (*env)->DeleteLocalRef(env, jary);
   return mary;
 }
 
@@ -438,7 +441,8 @@ void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) 
   }
 
   mclass = mrb_iv_get(mrb, mmain_class, mrb_intern_cstr(mrb, "@main"));
-  mobj = wrap_jobject(mrb, mrb_class_ptr(mclass), thiz);
+  mobj = wrap_jobject(mrb, mrb_class_ptr(mclass), 
+    (*env)->NewLocalRef(env, thiz));
   mrb_funcall(mrb, mobj, "initialize", 0);
 
   mrb_gc_arena_restore(mrb, ai);
