@@ -98,6 +98,9 @@ module Jmi
       val = Jmi.get_field_static self, ret, name
       const_set name, val
     end
+    def attach_auto
+      Java::Lang::Class.for_name(class_path(self))
+    end
     def attach_at(klass, ret, names, *args)
       type = opt = nil
       names = [names] unless names.is_a? Array

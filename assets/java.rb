@@ -22,6 +22,7 @@ module Jmi
         class Class < Jmi::Object
           attach String, "get_name"
           attach [Reflect::Field], "get_fields"
+          attach_static Class, "for_name", String
         end
       end
       module Util

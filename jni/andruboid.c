@@ -172,6 +172,9 @@ static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struc
 
   jclazz = DATA_PTR(mrb_obj_value(rmeth->opt1.obj));
   jobj = (*env)->NewObjectA(env, jclazz, rmeth->id, rmeth->argv);
+  if (!jobj) {
+    return mrb_nil_value();
+  }
   DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
   (*env)->DeleteLocalRef(env, jobj);
   return mobj;
@@ -317,6 +320,9 @@ static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
         (*env)->DeleteLocalRef(env, jarg->l);
       } break;
     }
+  }
+  if ((*env)->ExceptionCheck(env)) {
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "exception in java method");
   }
   return mobj;
 }
