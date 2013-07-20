@@ -179,8 +179,7 @@ module Jmi
     def [](iclass)
       klass = @table[iclass]
       unless klass
-        klass = Class.new Jmi::Object.force_path(Jmi::Object.class_path(self))
-        Jmi::Object.inherited klass # todo
+        klass = ::Class.new Jmi::Object.force_path(Jmi::Object.class_path(self))
         Jmi.set_classpath klass, "#{self}<#{iclass}>"
         klass.include self
         klass.instance_variable_set "@iclass", iclass
