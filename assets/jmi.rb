@@ -57,7 +57,6 @@ module Jmi
       h[k] = "L#{SIG_TABLE.class_path(k)};"
     end
     TYPE_TABLE = {
-      nil => "c"
     }
     def class2item(klass, table)
       prefix = ""
@@ -79,6 +78,12 @@ module Jmi
       ret = class2sig(ret)
       "(#{args.join("")})#{ret}"
     end
+    NAME_TABLE = {
+      "int" => Int
+    }
+    def name2class(name)
+      NAME_TABLE[name]
+    end
   end
   module JClass
     include Jmi::J
@@ -97,9 +102,6 @@ module Jmi
     def attach_const(ret, name)
       val = Jmi.get_field_static self, ret, name
       const_set name, val
-    end
-    def attach_auto
-      Java::Lang::Class.for_name(class_path(self))
     end
     def attach_at(klass, ret, names, *args)
       type = opt = nil
@@ -211,11 +213,14 @@ module Jmi
       def inherited(klass)
         if @path
           klass.instance_variable_set "@class_path", @path
+          NAME_TABLE[@path.gsub("/", ".")] = klass
           klass.class_path = @path
           @path = nil
           return
         end
-        klass.class_path = class_path(klass)
+        path = class_path(klass)
+        NAME_TABLE[path.gsub("/", ".")] = klass
+        klass.class_path = path
         if @init_args
           init_method = Jmi::Method.new klass, Void, "<init>", @init_args
           klass.instance_variable_set "@init_args", @init_args

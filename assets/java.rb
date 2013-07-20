@@ -35,4 +35,3 @@ module Jmi
     end
   end
 end
-

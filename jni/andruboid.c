@@ -116,6 +116,75 @@ static mrb_value jmeth_i__call_str(mrb_state *mrb, mrb_value mobj, struct RJMeth
   return mstr;
 }
 
+static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jobject jobj;
+  jstring jname;
+  mrb_value mclass, mname, mclassclass, mclassobj;
+  const char *cname;
+  jsize size;
+  jclass jclazz;
+  jmethodID jmeth;
+
+  jobj = (*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  if (!jobj) {
+    return mrb_nil_value();
+  }
+  jclazz = (*env)->GetObjectClass(env, jobj);
+  jmeth = (*env)->GetMethodID(env, jclazz, "getName", "()Ljava/lang/String;");
+  jname = (*env)->CallObjectMethod(env, jobj, jmeth);
+
+  size = (*env)->GetStringUTFLength(env, jname);
+  cname = (*env)->GetStringUTFChars(env, jname, NULL);
+  mname = mrb_str_new(mrb, cname, size);
+  (*env)->ReleaseStringUTFChars(env, jname, cname);
+  (*env)->DeleteLocalRef(env, jname);
+
+  mclass = mrb_funcall(mrb, mobj, "name2class", 1, mname);
+  mclassclass = mrb_str_new(mrb, "java.lang.Class", 15);
+  mclassclass = mrb_funcall(mrb, mobj, "name2class", 1, mclassclass);
+  mclassobj = wrap_jobject(mrb, mrb_class_ptr(mclassclass), jobj);
+  mrb_iv_set(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"), mclassobj);  
+
+  (*env)->DeleteLocalRef(env, jclazz);
+  return mclass;
+}
+
+static mrb_value jmeth_i__call_class_static(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jobject jobj;
+  jstring jname;
+  mrb_value mclass, mclassclass, mname, mclassobj;
+  const char *cname;
+  jsize size;
+  jclass jclazz;
+  jmethodID jmeth;
+
+  mobj = mrb_iv_get(mrb, mobj, mrb_intern_cstr(mrb, "jclass"));
+  jobj = (*env)->CallStaticObjectMethodA(env, (jclass)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  if (!jobj) {
+    return mrb_nil_value();
+  }
+  jclazz = (*env)->GetObjectClass(env, jobj);
+  jmeth = (*env)->GetMethodID(env, jclazz, "getName", "()Ljava/lang/String;");
+  jname = (*env)->CallObjectMethod(env, jobj, jmeth);
+
+  size = (*env)->GetStringUTFLength(env, jname);
+  cname = (*env)->GetStringUTFChars(env, jname, NULL);
+  mname = mrb_str_new(mrb, cname, size);
+  (*env)->ReleaseStringUTFChars(env, jname, cname);
+  (*env)->DeleteLocalRef(env, jname);
+
+  mclass = mrb_funcall(mrb, mobj, "name2class", 1, mname);
+  mclassclass = mrb_str_new(mrb, "java.lang.Class", 15);
+  mclassclass = mrb_funcall(mrb, mobj, "name2class", 1, mclassclass);
+  mclassobj = wrap_jobject(mrb, mrb_class_ptr(mclassclass), jobj);
+  mrb_iv_set(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"), mclassobj);  
+
+  (*env)->DeleteLocalRef(env, jclazz);
+  return mclass;
+}
+
 static mrb_value jmeth_i__call_obj(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jobject jobj;
@@ -184,8 +253,8 @@ static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struc
 #define FLAG_ARY (1 << 9)
 #define CALLER_TYPE(c, s, d) ((c) | ((s) ? FLAG_STATIC : 0) | ((d) ? FLAG_ARY : 0))
 
-static inline caller_t sig2caller(const char *csig, int is_static, int depth) {
-  switch (CALLER_TYPE(csig[0], is_static, depth)) {
+static inline caller_t type2caller(const char *ctype, int is_static, int depth) {
+  switch (CALLER_TYPE(ctype[0], is_static, depth)) {
     case 'V': {
       return jmeth_i__call_void;
     } break;
@@ -197,6 +266,12 @@ static inline caller_t sig2caller(const char *csig, int is_static, int depth) {
     } break;
     case 's': {
       return jmeth_i__call_str;
+    } break;
+    case 'c': {
+      return jmeth_i__call_class;
+    } break;
+    case 'c' | FLAG_STATIC: {
+      return jmeth_i__call_class_static;
     } break;
     case 'L': {
       return jmeth_i__call_obj;
@@ -263,7 +338,7 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
 
     msig = mrb_funcall(mrb, self, "class2type", 1, mret);
     csig = mrb_string_value_cstr(mrb, &msig);
-    smeth->caller = sig2caller(csig, is_static, depth);
+    smeth->caller = type2caller(csig, is_static, depth);
     smeth->opt2.depth = depth;
     if (!smeth->caller) {
       mrb_value mstatic = mrb_str_new_cstr(mrb, is_static ? "static " : "");
