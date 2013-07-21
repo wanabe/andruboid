@@ -20,11 +20,13 @@ module Jmi
   module J
     class Void
     end
-    class Bool
+    class Boolean
+    end
+    class Float
     end
     class Int
     end
-    def class_path(klass)
+    def class_path(klass, sep = "/")
       path = klass.instance_variable_get "@class_path"
       return path if path
 
@@ -41,15 +43,16 @@ module Jmi
           s.replace s + "$"
         else
           s.downcase!
-          s.replace s + "/"
+          s.replace s + sep
         end
       end
       path.join("")
     end
     SIG_TABLE = {
       Void => "V",
-      Bool => "Z",
+      Boolean => "Z",
       Int => "I",
+      Float => "F",
       Generics => "Ljava/lang/Object;"
     }
     SIG_TABLE.extend self
@@ -79,7 +82,9 @@ module Jmi
       "(#{args.join("")})#{ret}"
     end
     NAME_TABLE = {
-      "int" => Int
+      "int" => Int,
+      "boolean" => Boolean,
+      "float" => Float
     }
     def name2class(name)
       NAME_TABLE[name]
@@ -163,6 +168,7 @@ module Jmi
           end
         end
       end
+      names
     end
   end
   class Method

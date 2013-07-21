@@ -12,6 +12,9 @@ module Jmi
         module Reflect
           class Field < Jmi::Object
             attach Java::Lang::String, "to_string"
+            attach Java::Lang::String, "get_name"
+            attach Java::Lang::Class, "get_type"
+            attach Int, "get_modifiers"
           end
         end
         class Object < Jmi::Object
@@ -22,6 +25,7 @@ module Jmi
         class Class < Jmi::Object
           attach String, "get_name"
           attach [Reflect::Field], "get_fields"
+          attach [Reflect::Field], "get_declared_fields"
           attach_static Class, "for_name", String
         end
       end

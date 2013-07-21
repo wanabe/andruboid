@@ -26,7 +26,7 @@ module Jmi
       end
       module Graphics
         class Typeface < Jmi::Object
-          attach_const self, "MONOSPACE"
+          attach_auto
         end
       end
       module View
@@ -38,8 +38,7 @@ module Jmi
       end
       module Widget
         class LinearLayout < Android::View::View
-          attach_const Int, "HORIZONTAL"
-          attach_const Int, "VERTICAL"
+          attach_auto
           attach Void, ["add_view", "<<"], Android::View::View
           attach Void, "set_orientation", Int
         end
@@ -52,14 +51,13 @@ module Jmi
           attach Void, "set_on_click_listener", Android::View::View::OnClickListener
         end
         class Toast < Jmi::Object
-          attach_const Int, "LENGTH_SHORT"
-          attach_const Int, "LENGTH_LONG"
+          attach_auto
           attach_static Toast, "make_text", Android::Content::Context, Java::Lang::CharSequence, Int
           attach Void, "show"
         end
         class CheckBox < Android::View::View
-          attach Void, "set_checked", Bool
-          attach Bool, "is_checked"
+          attach Void, "set_checked", Boolean
+          attach Boolean, "is_checked"
           attach Void, "set_text", Java::Lang::CharSequence
           attach Void, "set_on_click_listener", Android::View::View::OnClickListener
         end

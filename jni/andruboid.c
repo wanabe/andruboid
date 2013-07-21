@@ -116,11 +116,18 @@ static mrb_value jmeth_i__call_str(mrb_state *mrb, mrb_value mobj, struct RJMeth
   return mstr;
 }
 
+static mrb_value jmeth_i__wrap_jclassobj(mrb_state *mrb, mrb_value mobj, jobject jobj) {
+  mrb_value mclassclass;
+  mclassclass = mrb_str_new(mrb, "java.lang.Class", 15);
+  mclassclass = mrb_funcall(mrb, mobj, "name2class", 1, mclassclass);
+  return wrap_jobject(mrb, mrb_class_ptr(mclassclass), jobj);
+}
+
 static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jobject jobj;
   jstring jname;
-  mrb_value mclass, mname, mclassclass, mclassobj;
+  mrb_value mclass, mname, mclassobj;
   const char *cname;
   jsize size;
   jclass jclazz;
@@ -132,6 +139,7 @@ static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMe
   }
   jclazz = (*env)->GetObjectClass(env, jobj);
   jmeth = (*env)->GetMethodID(env, jclazz, "getName", "()Ljava/lang/String;");
+  (*env)->DeleteLocalRef(env, jclazz);
   jname = (*env)->CallObjectMethod(env, jobj, jmeth);
 
   size = (*env)->GetStringUTFLength(env, jname);
@@ -141,12 +149,14 @@ static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMe
   (*env)->DeleteLocalRef(env, jname);
 
   mclass = mrb_funcall(mrb, mobj, "name2class", 1, mname);
-  mclassclass = mrb_str_new(mrb, "java.lang.Class", 15);
-  mclassclass = mrb_funcall(mrb, mobj, "name2class", 1, mclassclass);
-  mclassobj = wrap_jobject(mrb, mrb_class_ptr(mclassclass), jobj);
-  mrb_iv_set(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"), mclassobj);  
-
-  (*env)->DeleteLocalRef(env, jclazz);
+  if (mrb_nil_p(mclass)) {
+    return jmeth_i__wrap_jclassobj(mrb, mobj, jobj);
+  }
+  mclassobj = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"));
+  if (mrb_nil_p(mclassobj)) {
+    mclassobj = jmeth_i__wrap_jclassobj(mrb, mobj, jobj);
+    mrb_iv_set(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"), mclassobj);
+  }
   return mclass;
 }
 
@@ -160,8 +170,8 @@ static mrb_value jmeth_i__call_class_static(mrb_state *mrb, mrb_value mobj, stru
   jclass jclazz;
   jmethodID jmeth;
 
-  mobj = mrb_iv_get(mrb, mobj, mrb_intern_cstr(mrb, "jclass"));
-  jobj = (*env)->CallStaticObjectMethodA(env, (jclass)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  jclazz = (jclass)DATA_PTR(mrb_iv_get(mrb, mobj, mrb_intern_cstr(mrb, "jclass")));
+  jobj = (*env)->CallStaticObjectMethodA(env, jclazz, rmeth->id, rmeth->argv);
   if (!jobj) {
     return mrb_nil_value();
   }
@@ -176,11 +186,13 @@ static mrb_value jmeth_i__call_class_static(mrb_state *mrb, mrb_value mobj, stru
   (*env)->DeleteLocalRef(env, jname);
 
   mclass = mrb_funcall(mrb, mobj, "name2class", 1, mname);
-  mclassclass = mrb_str_new(mrb, "java.lang.Class", 15);
-  mclassclass = mrb_funcall(mrb, mobj, "name2class", 1, mclassclass);
-  mclassobj = wrap_jobject(mrb, mrb_class_ptr(mclassclass), jobj);
-  mrb_iv_set(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"), mclassobj);  
-
+  mclassobj = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"));
+  if (mrb_nil_p(mclassobj)) {
+    mclassclass = mrb_str_new(mrb, "java.lang.Class", 15);
+    mclassclass = mrb_funcall(mrb, mobj, "name2class", 1, mclassclass);
+    mclassobj = wrap_jobject(mrb, mrb_class_ptr(mclassclass), jobj);
+    mrb_iv_set(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"), mclassobj);
+  }
   (*env)->DeleteLocalRef(env, jclazz);
   return mclass;
 }
@@ -428,6 +440,11 @@ static mrb_value jmi_s__get_field_static(mrb_state *mrb, mrb_value self) {
   mstr = mrb_funcall(mrb, mmod, "class2type", 1, mret);
   cstr = mrb_string_value_cstr(mrb, &mstr);
   switch (cstr[0]) {
+    case 'Z': {
+      jboolean jval;
+      jval = (*env)->GetStaticBooleanField(env, jclazz, fid);
+      return jval ? mrb_true_value() : mrb_false_value();
+    } break;
     case 'I': {
       jint jval;
       jval = (*env)->GetStaticIntField(env, jclazz, fid);
