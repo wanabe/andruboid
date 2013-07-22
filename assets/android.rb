@@ -13,20 +13,19 @@ module Jmi
         class Context
         end
         module Pm
-          class PackageManager < Jmi::Object
+          class PackageManager < Java::Lang::Object
           end
-          class ApplicationInfo < Jmi::Object
+          class ApplicationInfo < Java::Lang::Object
             attach Java::Lang::CharSequence, "load_description", PackageManager
             attach Java::Lang::String, "to_string"
           end
-          class PackageManager < Jmi::Object
+          class PackageManager < Java::Lang::Object
             attach Java::Util::List[ApplicationInfo], "get_installed_applications", Int
           end
         end
       end
       module Graphics
-        class Typeface < Jmi::Object
-          attach_auto
+        class Typeface < Java::Lang::Object
         end
       end
       module View
@@ -38,7 +37,6 @@ module Jmi
       end
       module Widget
         class LinearLayout < Android::View::View
-          attach_auto
           attach Void, ["add_view", "<<"], Android::View::View
           attach Void, "set_orientation", Int
         end
@@ -50,8 +48,7 @@ module Jmi
           attach Void, "set_text", Java::Lang::CharSequence
           attach Void, "set_on_click_listener", Android::View::View::OnClickListener
         end
-        class Toast < Jmi::Object
-          attach_auto
+        class Toast < Java::Lang::Object
           attach_static Toast, "make_text", Android::Content::Context, Java::Lang::CharSequence, Int
           attach Void, "show"
         end
@@ -74,7 +71,7 @@ module Jmi
         end
       end
       module App
-        class Activity < Jmi::Object
+        class Activity < Java::Lang::Object
           attach Void, "set_content_view", Android::View::View
           attach Android::Content::Pm::PackageManager, "get_package_manager"
         end

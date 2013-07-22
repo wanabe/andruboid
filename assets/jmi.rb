@@ -217,14 +217,14 @@ module Jmi
     end
     class << self
       def inherited(klass)
+        path = nil
         if @path
-          klass.instance_variable_set "@class_path", @path
-          NAME_TABLE[@path.gsub("/", ".")] = klass
-          klass.class_path = @path
+          path = @path
+          klass.instance_variable_set "@class_path", path
           @path = nil
-          return
+        else
+          path = class_path(klass)
         end
-        path = class_path(klass)
         NAME_TABLE[path.gsub("/", ".")] = klass
         klass.class_path = path
         if @init_args

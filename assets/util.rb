@@ -2,6 +2,12 @@ module Jmi
   module J
     module Java
       module Lang
+        class << Object
+          def inherited(klass)
+            super
+            klass.attach_auto
+          end
+        end
         module Reflect
           class Field < Jmi::Object
             def static?

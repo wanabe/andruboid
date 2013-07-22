@@ -4,6 +4,8 @@ module Jmi
       module Lang
         class Class < Jmi::Object
         end
+        class Object < Jmi::Object
+        end
         module Reflect
           class Modifier < Jmi::Object
             attach_const Int, "STATIC"

@@ -140,8 +140,8 @@ static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMe
   jclazz = (*env)->GetObjectClass(env, jobj);
   jmeth = (*env)->GetMethodID(env, jclazz, "getName", "()Ljava/lang/String;");
   (*env)->DeleteLocalRef(env, jclazz);
-  jname = (*env)->CallObjectMethod(env, jobj, jmeth);
 
+  jname = (*env)->CallObjectMethod(env, jobj, jmeth);
   size = (*env)->GetStringUTFLength(env, jname);
   cname = (*env)->GetStringUTFChars(env, jname, NULL);
   mname = mrb_str_new(mrb, cname, size);
@@ -156,6 +156,8 @@ static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMe
   if (mrb_nil_p(mclassobj)) {
     mclassobj = jmeth_i__wrap_jclassobj(mrb, mobj, jobj);
     mrb_iv_set(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"), mclassobj);
+  } else {
+    (*env)->DeleteLocalRef(env, jobj);
   }
   return mclass;
 }
@@ -226,6 +228,7 @@ static mrb_value jmeth_i__call_obj_ary(mrb_state *mrb, mrb_value mobj, struct RJ
   jobject jobj;
   mrb_value mitem, mary;
   int size, i;
+  int ai;
 
   jary = (jobjectArray)(*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
   if (!jary) {
@@ -238,9 +241,11 @@ static mrb_value jmeth_i__call_obj_ary(mrb_state *mrb, mrb_value mobj, struct RJ
   size = (*env)->GetArrayLength(env, jary);
   mary = mrb_ary_new_capa(mrb, size);
   for (i = 0; i < size; i++) {
+    ai = mrb_gc_arena_save(mrb);
     jobj = (*env)->GetObjectArrayElement(env, jary, i);
     mitem = wrap_jobject(mrb, rmeth->opt1.klass, jobj);
     mrb_ary_push(mrb, mary, mitem);
+    mrb_gc_arena_restore(mrb, ai);
   }
   (*env)->DeleteLocalRef(env, jary);
   return mary;
