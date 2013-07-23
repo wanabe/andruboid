@@ -10,6 +10,7 @@ module Jmi
             def attach(ret, names, *args)
               classclass = self
               names = super
+              names.pop unless names.last.is_a? ::String
               names.each do |name|
                 Jmi::Object.singleton_class.define_method(name) do |*argv|
                   @jclassobj.send(name, *argv)
@@ -30,14 +31,14 @@ module Jmi
             attach_const Int, "PUBLIC"
           end
           class Field < Java::Lang::Object
-            attach Int, "get_modifiers"
-            attach Java::Lang::String, "get_name"
-            attach Java::Lang::Class, "get_type"
+            attach Int, "getModifiers"
+            attach Java::Lang::String, "getName"
+            attach Java::Lang::Class, "getType"
           end
         end
         class Class < Java::Lang::Object
-          attach_static Class, "for_name", String
-          attach [Reflect::Field], "get_declared_fields"
+          attach_static Class, "forName", String
+          attach [Reflect::Field], "getDeclaredFields"
         end
       end
     end

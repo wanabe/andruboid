@@ -16,11 +16,11 @@ module Jmi
           class PackageManager < Java::Lang::Object
           end
           class ApplicationInfo < Java::Lang::Object
-            attach Java::Lang::CharSequence, "load_description", PackageManager
-            attach Java::Lang::String, "to_string"
+            attach Java::Lang::CharSequence, "loadDescription", PackageManager
+            attach Java::Lang::String, "toString"
           end
           class PackageManager < Java::Lang::Object
-            attach Java::Util::List[ApplicationInfo], "get_installed_applications", Int
+            attach Java::Util::List[ApplicationInfo], "getInstalledApplications", Int
           end
         end
       end
@@ -37,43 +37,44 @@ module Jmi
       end
       module Widget
         class LinearLayout < Android::View::View
-          attach Void, ["add_view", "<<"], Android::View::View
-          attach Void, "set_orientation", Int
+          attach Void, "addView", Android::View::View
+          attach Void, "setOrientation", Int
+          alias << addView
         end
         class TextView < Android::View::View
-          attach Void, "set_text", Java::Lang::CharSequence
-          attach Void, "set_typeface", Android::Graphics::Typeface
+          attach Void, "setText", Java::Lang::CharSequence
+          attach Void, "setTypeface", Android::Graphics::Typeface
         end
         class Button < Android::View::View
-          attach Void, "set_text", Java::Lang::CharSequence
-          attach Void, "set_on_click_listener", Android::View::View::OnClickListener
+          attach Void, "setText", Java::Lang::CharSequence
+          attach Void, "setOnClickListener", Android::View::View::OnClickListener
         end
         class Toast < Java::Lang::Object
-          attach_static Toast, "make_text", Android::Content::Context, Java::Lang::CharSequence, Int
+          attach_static Toast, "makeText", Android::Content::Context, Java::Lang::CharSequence, Int
           attach Void, "show"
         end
         class CheckBox < Android::View::View
-          attach Void, "set_checked", Boolean
-          attach Boolean, "is_checked"
-          attach Void, "set_text", Java::Lang::CharSequence
-          attach Void, "set_on_click_listener", Android::View::View::OnClickListener
+          attach Void, "setChecked", Boolean
+          attach Boolean, "isChecked"
+          attach Void, "setText", Java::Lang::CharSequence
+          attach Void, "setOnClickListener", Android::View::View::OnClickListener
         end
         class RadioGroup < LinearLayout
           module OnCheckedChangeListener
           end
-          attach Int, "get_checked_radio_button_id"
-          attach Void, "set_on_checked_change_listener", Android::Widget::RadioGroup::OnCheckedChangeListener
+          attach Int, "getCheckedRadioButtonId"
+          attach Void, "setOnCheckedChangeListener", Android::Widget::RadioGroup::OnCheckedChangeListener
         end
         class RadioButton < Button
-          attach Int, "get_id"
+          attach Int, "getId"
         end
         class EditText < TextView
         end
       end
       module App
         class Activity < Java::Lang::Object
-          attach Void, "set_content_view", Android::View::View
-          attach Android::Content::Pm::PackageManager, "get_package_manager"
+          attach Void, "setContentView", Android::View::View
+          attach Android::Content::Pm::PackageManager, "getPackageManager"
         end
       end
     end

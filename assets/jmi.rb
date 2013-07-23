@@ -98,77 +98,24 @@ module Jmi
       @init_args = args
       @init_method = Jmi::Method.new self, Void, "<init>", args
     end
-    def attach(ret, names, *args)
-      attach_at self, ret, names, *args
+    def attach(ret, name, *args)
+      attach_at self, ret, name, *args
     end
-    def attach_static(ret, names, *args)
-      attach_at singleton_class, ret, names, *args
+    def attach_static(ret, name, *args)
+      attach_at singleton_class, ret, name, *args
     end
     def attach_const(ret, name)
       val = Jmi.get_field_static self, ret, name
       const_set name, val
     end
-    def attach_at(klass, ret, names, *args)
-      type = opt = nil
-      names = [names] unless names.is_a? Array
-
-      name = names.first
+     def attach_at(klass, ret, name, *args)
       argc = args.size
-      case argc
-      when 0
-        case
-        when name.index("get_") == 0
-          opt = name[4..-1]
-          names.push opt
-          type = :get
-        when name == "to_string"
-          names.push "to_s"
-        end
-      when 1
-        case
-        when name.index("set_") == 0
-          opt = names.first[4..-1]
-          names.push "#{opt}="
-          opt = "@#{opt}"
-          type = :set
-        when name.index("add_") == 0
-          opt = "@#{names.first[4..-1]}"
-          type = :add
-        end
-      end
-
-      jname = names.first.split "_"
-      jname[1, jname.length].each {|s| s.capitalize!}
-      jname = jname.join("")
-      names.push jname
-
       args.map! {|a| class2sig(a)}
-      jmethod = Jmi::Method.new klass, ret, jname, args
-      names.each do |name|
-        case type
-        when :set
-          klass.define_method(name) do |arg|
-            jmethod.call self, name, [arg]
-            instance_variable_set opt, arg
-          end
-        when :add
-          klass.define_method(name) do |arg|
-            args = [arg]
-            jmethod.call self, name, args
-            list = instance_variable_get opt
-            if list
-              list << arg
-            else
-              instance_variable_set opt, args
-            end
-          end
-        else
-          klass.define_method(name) do |*args|
-            jmethod.call self, name, args
-          end
-        end
+      jmethod = Jmi::Method.new klass, ret, name, args
+      klass.define_method(name) do |*args|
+        jmethod.call self, name, args
       end
-      names
+      return name, jmethod
     end
   end
   class Method
