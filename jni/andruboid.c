@@ -15,7 +15,7 @@ static const struct mrb_data_type jobj_data_type = {
   "jobject", jobj_free, 
 };
 
-static mrb_value jclass__set_class_path(mrb_state *mrb, mrb_value self) {
+static mrb_value jdefinition__set_class_path(mrb_state *mrb, mrb_value self) {
   mrb_value mobj, mpath;
   char *cpath;
   jclass jclazz, jglobal;
@@ -476,8 +476,8 @@ static struct RClass *init_jmi(mrb_state *mrb) {
   mrb_define_singleton_method(mrb, (struct RObject *)mod, "get_field_static", jmi_s__get_field_static, ARGS_REQ(3));
 
   klass = mrb_define_module_under(mrb, mod,
-    "JClass");
-  mrb_define_method(mrb, klass, "class_path=", jclass__set_class_path, ARGS_REQ(1));
+    "Definition");
+  mrb_define_method(mrb, klass, "class_path=", jdefinition__set_class_path, ARGS_REQ(1));
 
   klass = mrb_define_class_under(mrb, mod,
     "Method", mrb->object_class);

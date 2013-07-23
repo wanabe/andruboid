@@ -89,7 +89,7 @@ module Jmi
       end
     end
   end
-  module JClass
+  module Definition
     def attach_auto
       path = class_path(self, ".")
       klass = Java::Lang::Class.forName(path)

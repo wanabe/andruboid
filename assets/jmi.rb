@@ -90,7 +90,7 @@ module Jmi
       NAME_TABLE[name]
     end
   end
-  module JClass
+  module Definition
     include Jmi::J
     attr_reader :init_method
     def attach_init(*args)
@@ -122,7 +122,7 @@ module Jmi
     include Jmi::J
   end
   module Generics
-    include JClass
+    include Definition
     extend J
     def attach(*args)
       if @generics && args.include?(Generics)
@@ -156,7 +156,7 @@ module Jmi
   class Object
     include J
     extend J
-    extend JClass
+    extend Definition
     def initialize(*args)
       init = self.class.init_method
       raise "#{self.class} has no consructor" unless init
