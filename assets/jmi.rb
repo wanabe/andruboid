@@ -115,7 +115,6 @@ module Jmi
       klass.define_method(name) do |*args|
         jmethod.call self, name, args
       end
-      return name, jmethod
     end
   end
   class Method

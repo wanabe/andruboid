@@ -7,10 +7,10 @@ module Jmi
         class Class < Java::Lang::Object
           J::TYPE_TABLE[self] = "c"
           class << self
-            def attach(ret, names, *args)
+            def attach(ret, name, *args)
               classclass = self
               names = super
-              names.pop unless names.last.is_a? ::String
+              names = [name] if names.is_a? Proc
               names.each do |name|
                 Jmi::Object.singleton_class.define_method(name) do |*argv|
                   @jclassobj.send(name, *argv)

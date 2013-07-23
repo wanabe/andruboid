@@ -5,13 +5,13 @@ module Jmi
         module Reflect
           class Field < Java::Lang::Object
             def static?
-              getModifiers & Modifier::STATIC != 0
+              modifiers & Modifier::STATIC != 0
             end
             def final?
-              getModifiers & Modifier::FINAL != 0
+              modifiers & Modifier::FINAL != 0
             end
             def public?
-              getModifiers & Modifier::PUBLIC != 0
+              modifiers & Modifier::PUBLIC != 0
             end
           end
         end
@@ -32,57 +32,48 @@ module Jmi
             str
           end
           def attach_at(klass, ret, name, *args)
-            name, jmethod = super
-            type = opt = nil
-
+            super
+            attach_alias klass, name, args.size
+          end
+          def attach_alias(klass, name, argc)
             rname = camel2snake(name)
             names = []
-            names.push rname if rname != name
-            argc = args.size
-            case argc
-            when 0
-              case
-              when rname.index("get_") == 0
-                opt = rname[4..-1]
-                names.push opt
-                type = :get
-              when rname == "to_string"
-                names.push "to_s"
-              end
-            when 1
-              case
-              when rname.index("set_") == 0
-                opt = names.first[4..-1]
-                names.push "#{opt}="
-                opt = "@#{opt}"
-                type = :set
-              when rname.index("add_") == 0
-                opt = "@#{names.first[4..-1]}"
-                type = :add
-              end
-            end
-
-            case type
-            when :set
-              klass.define_method(name) do |arg|
-                jmethod.call self, name, [arg]
-                instance_variable_set opt, arg
-              end
-            when :add
-              klass.define_method(name) do |arg|
-                args = [arg]
-                jmethod.call self, name, args
-                list = instance_variable_get opt
-                if list
-                  list << arg
-                else
-                  instance_variable_set opt, args
+            if rname != name
+              case 
+              when argc == 1 && rname.index("set_") == 0
+                var_name = rname[4..-1]
+                names.push "#{var_name}="
+                ivar = "@#{var_name}"
+                klass.define_method(rname) do |arg|
+                  __send__ name, arg
+                  instance_variable_set ivar, arg
+                end
+              when argc == 1 && rname.index("add_") == 0
+                var_name = "@#{rname[4..-1]}"
+                klass.define_method(rname) do |arg|
+                  __send__ name, arg
+                  list = instance_variable_get ivar
+                  if list
+                    list << arg
+                  else
+                    instance_variable_set opt, [arg]
+                  end
+                end
+              else
+                names.push rname
+                case
+                when argc == 0 && rname.index("get_") == 0
+                  names.push rname[4..-1]
+                when argc == 0 && rname == "to_string"
+                  names.push "to_s"
                 end
               end
             end
+
             names.each do |alias_name|
               klass.alias_method alias_name, name
             end
+            names.push name
             names
           end
         end
@@ -92,21 +83,26 @@ module Jmi
   module Definition
     def attach_auto
       path = class_path(self, ".")
-      klass = Java::Lang::Class.forName(path)
-      klass.getDeclaredFields.each do |field|
-        type = field.getType
+      klass = Java::Lang::Class.for_name(path)
+      klass.declared_fields.each do |field|
+        type = field.type
         next if type.is_a? Java::Lang::Class
         next unless field.public? && field.static? && field.final?
-        attach_const type, field.getName
+        attach_const type, field.name
       end
     end
   end
   module J::Java::Lang
-    Object.attach_auto
-    Class.attach_auto
-    CharSequence.attach_auto
-    String.attach_auto
-    Reflect::Modifier.attach_auto
-    Reflect::Field.attach_auto
+    Class.attach_alias Class.singleton_class, "forName", 1
+    Class.attach [Reflect::Field], "getDeclaredFields"
+    Reflect::Field.attach_alias Reflect::Field, "getModifiers", 0
+    Reflect::Field.attach_alias Reflect::Field, "getName", 0
+    Reflect::Field.attach_alias Reflect::Field, "getType", 0
+    [
+      Object, Class, CharSequence, String,
+      Reflect::Modifier, Reflect::Field
+    ].each do |klass|
+      klass.attach_auto
+    end
   end
 end
