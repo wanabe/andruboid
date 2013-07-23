@@ -2,14 +2,8 @@ module Jmi
   module J
     module Java
       module Lang
-        class << Object
-          def inherited(klass)
-            super
-            klass.attach_auto
-          end
-        end
         module Reflect
-          class Field < Jmi::Object
+          class Field < Java::Lang::Object
             def static?
               modifiers & Modifier::STATIC != 0
             end
@@ -19,6 +13,12 @@ module Jmi
             def public?
               modifiers & Modifier::PUBLIC != 0
             end
+          end
+        end
+        class << Object
+          def inherited(klass)
+            super
+            klass.attach_auto
           end
         end
       end
@@ -35,7 +35,6 @@ module Jmi
       end
     end
   end
-  J::TYPE_TABLE[J::Java::Lang::Class] = "c"
   module JClass
     def attach_auto
       klass = Java::Lang::Class.for_name(class_path(self, "."))

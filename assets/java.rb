@@ -2,19 +2,11 @@ module Jmi
   module J
     module Java
       module Lang
-        class Class < Jmi::Object
-        end
-        class CharSequence < Jmi::Object
-          include AsString
-        end
-        class String < CharSequence
+        class Class < Java::Lang::Object
         end
         module Reflect
-          class Field < Jmi::Object
+          class Field < Java::Lang::Object
             attach Java::Lang::String, "to_string"
-            attach Java::Lang::String, "get_name"
-            attach Java::Lang::Class, "get_type"
-            attach Int, "get_modifiers"
           end
         end
         class Object < Jmi::Object
@@ -22,7 +14,7 @@ module Jmi
           attach Class, "get_class"
           alias class rb_class
         end
-        class Class < Jmi::Object
+        class Class < Java::Lang::Object
           attach String, "get_name"
           attach [Reflect::Field], "get_fields"
           attach [Reflect::Field], "get_declared_fields"
