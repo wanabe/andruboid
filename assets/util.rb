@@ -25,19 +25,11 @@ module Jmi
     end
   end
   class << J::Java::Lang::Class
-    def attach(ret, names, *args)
-      classclass = self
-      names = super
-      names.each do |name|
-        Jmi::Object.singleton_class.define_method(name) do |*argv|
-          @jclassobj.send(name, *argv)
-        end
-      end
-    end
   end
   module JClass
     def attach_auto
-      klass = Java::Lang::Class.for_name(class_path(self, "."))
+      path = class_path(self, ".")
+      klass = Java::Lang::Class.for_name(path)
       klass.declared_fields.each do |field|
         type = field.type
         next if type.is_a? Java::Lang::Class
@@ -45,5 +37,13 @@ module Jmi
         attach_const field.type, field.name
       end
     end
+  end
+  module J::Java::Lang
+    Object.attach_auto
+    Class.attach_auto
+    CharSequence.attach_auto
+    String.attach_auto
+    Reflect::Modifier.attach_auto
+    Reflect::Field.attach_auto
   end
 end

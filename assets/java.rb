@@ -2,8 +2,6 @@ module Jmi
   module J
     module Java
       module Lang
-        class Class < Java::Lang::Object
-        end
         module Reflect
           class Field < Java::Lang::Object
             attach Java::Lang::String, "to_string"
@@ -17,8 +15,6 @@ module Jmi
         class Class < Java::Lang::Object
           attach String, "get_name"
           attach [Reflect::Field], "get_fields"
-          attach [Reflect::Field], "get_declared_fields"
-          attach_static Class, "for_name", String
         end
       end
       module Util
