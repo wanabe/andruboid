@@ -48,7 +48,21 @@ module Jmi
 
       edittext = EditText.new(self)
       edittext.typeface = Typeface::MONOSPACE
-      edittext.text = vlayout.get_class.get_fields[0].to_s
+      str = ""
+      Java::Lang::Object.declared_methods.each do |m|
+        types = [m.return_type, *m.parameter_types]
+        types.map! do |type|
+          if type.is_a? ::Class
+            type.to_s
+          else
+            type.name
+          end
+        end
+        ret = types.shift
+        line = "#{ret} #{m.name}(#{types.join(', ')})\n\n"
+        str += line
+      end
+      edittext.text = str
 
       layout << edittext
     end

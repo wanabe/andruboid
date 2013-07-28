@@ -112,9 +112,20 @@ module Jmi
       argc = args.size
       args.map! {|a| class2sig(a)}
       jmethod = Jmi::Method.new klass, ret, name, args
+      safe_name(name)
       klass.define_method(name) do |*args|
         jmethod.call self, name, args
       end
+    end
+    def safe_name(name)
+      sname = name
+      if method_defined?(name)
+        while method_defined?(sname)
+          sname += "_rb"
+        end
+        alias_method sname, name
+      end
+      name
     end
   end
   class Method

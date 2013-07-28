@@ -73,6 +73,23 @@ static const struct mrb_data_type jmeth_data_type = {
   "jmethod", jmeth_free, 
 };
 
+static jarray jmeth_i__start_enum_ary(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth, mrb_value *pmary, int *psize) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jarray jary;
+
+  jary = (jarray)(*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  if (!jary) {
+    return 0;
+  }
+  if (rmeth->opt2.depth != 1) {
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "TODO: return nested array");
+  }
+
+  *psize = (*env)->GetArrayLength(env, jary);
+  *pmary = mrb_ary_new_capa(mrb, *psize);
+  return jary;
+}
+
 static mrb_value jmeth_i__call_void(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
 
@@ -123,9 +140,8 @@ static mrb_value jmeth_i__wrap_jclassobj(mrb_state *mrb, mrb_value mobj, jobject
   return wrap_jobject(mrb, mrb_class_ptr(mclassclass), jobj);
 }
 
-static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+static mrb_value jmeth_i__jclass2mclass(mrb_state *mrb, jobject jobj, mrb_value mobj) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  jobject jobj;
   jstring jname;
   mrb_value mclass, mname, mclassobj;
   const char *cname;
@@ -133,7 +149,6 @@ static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMe
   jclass jclazz;
   jmethodID jmeth;
 
-  jobj = (*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
   if (!jobj) {
     return mrb_nil_value();
   }
@@ -162,44 +177,48 @@ static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMe
   return mclass;
 }
 
+static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jobject jobj;
+
+  jobj = (*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  return jmeth_i__jclass2mclass(mrb, jobj, mobj);
+}
+
+static mrb_value jmeth_i__call_class_ary(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jobject jobj;
+  jarray jary;
+  mrb_value mitem, mary;
+  int i, ai, size;
+
+  jary = jmeth_i__start_enum_ary(mrb, mobj, rmeth, &mary, &size);
+  if (!jary) {
+    return mrb_nil_value();
+  }
+
+  for (i = 0; i < size; i++) {
+    ai = mrb_gc_arena_save(mrb);
+    jobj = (*env)->GetObjectArrayElement(env, jary, i);
+    mitem = jmeth_i__jclass2mclass(mrb, jobj, mobj);
+    mrb_ary_push(mrb, mary, mitem);
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  (*env)->DeleteLocalRef(env, jary);
+  return mary;
+}
+
 static mrb_value jmeth_i__call_class_static(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jobject jobj;
-  jstring jname;
-  mrb_value mclass, mname, mclassobj;
-  const char *cname;
-  jsize size;
   jclass jclazz;
-  jmethodID jmeth;
 
   jclazz = (jclass)DATA_PTR(mrb_iv_get(mrb, mobj, mrb_intern_cstr(mrb, "jclass")));
   jobj = (*env)->CallStaticObjectMethodA(env, jclazz, rmeth->id, rmeth->argv);
   if (!jobj) {
     return mrb_nil_value();
   }
-  jclazz = (*env)->GetObjectClass(env, jobj);
-  jmeth = (*env)->GetMethodID(env, jclazz, "getName", "()Ljava/lang/String;");
-  (*env)->DeleteLocalRef(env, jclazz);
-
-  jname = (*env)->CallObjectMethod(env, jobj, jmeth);
-  size = (*env)->GetStringUTFLength(env, jname);
-  cname = (*env)->GetStringUTFChars(env, jname, NULL);
-  mname = mrb_str_new(mrb, cname, size);
-  (*env)->ReleaseStringUTFChars(env, jname, cname);
-  (*env)->DeleteLocalRef(env, jname);
-
-  mclass = mrb_funcall(mrb, mobj, "name2class", 1, mname);
-  if (mrb_nil_p(mclass)) {
-    return jmeth_i__wrap_jclassobj(mrb, mobj, jobj);
-  }
-  mclassobj = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"));
-  if (mrb_nil_p(mclassobj)) {
-    mclassobj = jmeth_i__wrap_jclassobj(mrb, mobj, jobj);
-    mrb_iv_set(mrb, mclass, mrb_intern_cstr(mrb, "@jclassobj"), mclassobj);
-  } else {
-    (*env)->DeleteLocalRef(env, jobj);
-  }
-  return mclass;
+  return jmeth_i__jclass2mclass(mrb, jobj, mobj);
 }
 
 static mrb_value jmeth_i__call_obj(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
@@ -233,16 +252,11 @@ static mrb_value jmeth_i__call_obj_ary(mrb_state *mrb, mrb_value mobj, struct RJ
   int size, i;
   int ai;
 
-  jary = (jobjectArray)(*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  jary = jmeth_i__start_enum_ary(mrb, mobj, rmeth, &mary, &size);
   if (!jary) {
     return mrb_nil_value();
   }
-  if (rmeth->opt2.depth != 1) {
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "TODO: return nested array");
-  }
 
-  size = (*env)->GetArrayLength(env, jary);
-  mary = mrb_ary_new_capa(mrb, size);
   for (i = 0; i < size; i++) {
     ai = mrb_gc_arena_save(mrb);
     jobj = (*env)->GetObjectArrayElement(env, jary, i);
@@ -289,6 +303,9 @@ static inline caller_t type2caller(const char *ctype, int is_static, int depth) 
     } break;
     case 'c': {
       return jmeth_i__call_class;
+    } break;
+    case 'c' | FLAG_ARY: {
+      return jmeth_i__call_class_ary;
     } break;
     case 'c' | FLAG_STATIC: {
       return jmeth_i__call_class_static;

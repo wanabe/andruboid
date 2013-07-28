@@ -95,12 +95,16 @@ module Jmi
   module J::Java::Lang
     Class.attach_alias Class.singleton_class, "forName", 1
     Class.attach [Reflect::Field], "getDeclaredFields"
+    Class.attach [Reflect::Method], "getDeclaredMethods"
     Reflect::Field.attach_alias Reflect::Field, "getModifiers", 0
     Reflect::Field.attach_alias Reflect::Field, "getName", 0
     Reflect::Field.attach_alias Reflect::Field, "getType", 0
+    Reflect::Method.attach_alias Reflect::Method, "getName", 0
+    Reflect::Method.attach_alias Reflect::Method, "getReturnType", 0
+    Reflect::Method.attach_alias Reflect::Method, "getParameterTypes", 0
     [
       Object, Class, CharSequence, String,
-      Reflect::Modifier, Reflect::Field
+      Reflect::Modifier, Reflect::Field, Reflect::Method
     ].each do |klass|
       klass.attach_auto
     end
