@@ -35,23 +35,25 @@ module Jmi
             super
             attach_alias klass, name, args.size
           end
-          def attach_alias(klass, name, argc)
+          def attach_alias(klass, jname, argc)
+            name = jname
             rname = camel2snake(name)
             names = []
-            if rname != name
+            if rname != jname
               case 
               when argc == 1 && rname.index("set_") == 0
                 var_name = rname[4..-1]
                 names.push "#{var_name}="
                 ivar = "@#{var_name}"
                 klass.define_method(rname) do |arg|
-                  __send__ name, arg
+                  __send__ jname, arg
                   instance_variable_set ivar, arg
                 end
+                name = rname
               when argc == 1 && rname.index("add_") == 0
                 var_name = "@#{rname[4..-1]}"
                 klass.define_method(rname) do |arg|
-                  __send__ name, arg
+                  __send__ jname, arg
                   list = instance_variable_get ivar
                   if list
                     list << arg
@@ -59,6 +61,7 @@ module Jmi
                     instance_variable_set opt, [arg]
                   end
                 end
+                name = rname
               else
                 names.push rname
                 case

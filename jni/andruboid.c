@@ -8,7 +8,9 @@ char err[1024] = {0};
 
 static void jobj_free(mrb_state *mrb, void *p) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  (*env)->DeleteGlobalRef(env, (jobject)p);
+  if (p) {
+    (*env)->DeleteGlobalRef(env, (jobject)p);
+  }
 }
 
 static const struct mrb_data_type jobj_data_type = {
@@ -273,13 +275,15 @@ static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struc
   jclass jclazz;
   jobject jobj;
 
+  DATA_TYPE(mobj) = &jobj_data_type;
+  DATA_PTR(mobj) = NULL;
+
   jclazz = DATA_PTR(mrb_obj_value(rmeth->opt1.obj));
   jobj = (*env)->NewObjectA(env, jclazz, rmeth->id, rmeth->argv);
-  if (!jobj) {
-    return mrb_nil_value();
+  if (jobj) {
+    DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
+    (*env)->DeleteLocalRef(env, jobj);
   }
-  DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
-  (*env)->DeleteLocalRef(env, jobj);
   return mobj;
 }
 

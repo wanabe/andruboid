@@ -60,6 +60,7 @@ module Jmi
         end
         ret = types.shift
         line = "#{ret} #{m.name}(#{types.join(', ')})\n\n"
+        line.gsub!("Jmi::J::", "")
         str += line
       end
       edittext.text = str
