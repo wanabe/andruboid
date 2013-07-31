@@ -115,17 +115,12 @@ static mrb_value jmeth_i__call_int(mrb_state *mrb, mrb_value mobj, struct RJMeth
   return mrb_fixnum_value(ji);
 }
 
-static mrb_value jmeth_i__call_str(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+static mrb_value jstr2mstr(mrb_state *mrb, jstring jstr) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  jstring jstr;
   mrb_value mstr;
   jsize size;
   const char *cstr;
 
-  jstr = (*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
-  if (!jstr) {
-    return mrb_nil_value();
-  }
   size = (*env)->GetStringUTFLength(env, jstr);
   cstr = (*env)->GetStringUTFChars(env, jstr, NULL);
   mstr = mrb_str_new(mrb, cstr, size);
@@ -133,6 +128,17 @@ static mrb_value jmeth_i__call_str(mrb_state *mrb, mrb_value mobj, struct RJMeth
   (*env)->ReleaseStringUTFChars(env, jstr, cstr);
   (*env)->DeleteLocalRef(env, jstr);
   return mstr;
+}
+
+static mrb_value jmeth_i__call_str(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jstring jstr;
+
+  jstr = (*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  if (!jstr) {
+    return mrb_nil_value();
+  }
+  return jstr2mstr(mrb, jstr);
 }
 
 static mrb_value jmeth_i__wrap_jclassobj(mrb_state *mrb, mrb_value mobj, jobject jobj) {
@@ -459,8 +465,7 @@ static mrb_value jmi_s__get_field_static(mrb_state *mrb, mrb_value self) {
 
   mmod = mrb_const_get(mrb, self, mrb_intern_cstr(mrb, "Object"));
   mrb_get_args(mrb, "ooo", &mclass, &mret, &mname);
-  mclass = mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass"));
-  jclazz = DATA_PTR(mclass);
+  jclazz = DATA_PTR(mrb_iv_get(mrb, mclass, mrb_intern_cstr(mrb, "jclass")));
 
   cname = mrb_string_value_cstr(mrb, &mname);
   mstr = mrb_funcall(mrb, mmod, "class2sig", 1, mret);
@@ -484,8 +489,15 @@ static mrb_value jmi_s__get_field_static(mrb_state *mrb, mrb_value self) {
       jval = (*env)->GetStaticObjectField(env, jclazz, fid);
       return wrap_jobject(mrb, mrb_class_ptr(mret), jval);
     } break;
+    case 's': {
+      jstring jstr;
+      jstr = (*env)->GetStaticObjectField(env, jclazz, fid);
+      return jstr2mstr(mrb, jstr);
+    } break;
+
   }
-  mrb_raisef(mrb, E_RUNTIME_ERROR, "unsupported field: %S", mstr);
+  mclass = mrb_funcall(mrb, mclass, "inspect", 0);
+  mrb_raisef(mrb, E_RUNTIME_ERROR, "unsupported field: %S == %S in %S", mstr, mname, mclass);
   return mrb_nil_value();
 }
 

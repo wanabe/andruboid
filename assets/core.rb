@@ -20,7 +20,7 @@ module Jmi
           end
         end
         class CharSequence < Java::Lang::Object
-          include AsString
+          as_string
         end
         class String < CharSequence
         end

@@ -4,27 +4,16 @@ end
 module Jmi
   module Generics
   end
-  module AsString
-    module Inner
-      def as_string(mod)
-        J::TYPE_TABLE[mod] = "s"
-      end
-      alias inherited as_string
-      def included(mod)
-        as_string(mod)
-        mod.extend Inner
-      end
-    end
-    extend Inner
-  end
   module J
     class Void
     end
     class Boolean
     end
-    class Float
-    end
     class Int
+    end
+    class Long
+    end
+    class Float
     end
     def class_path(klass, sep = "/")
       path = klass.instance_variable_get "@class_path"
@@ -52,6 +41,7 @@ module Jmi
       Void => "V",
       Boolean => "Z",
       Int => "I",
+      Long => "J",
       Float => "F",
       Generics => "Ljava/lang/Object;"
     }
@@ -82,8 +72,10 @@ module Jmi
       "(#{args.join("")})#{ret}"
     end
     NAME_TABLE = {
-      "int" => Int,
+      "void" => Void,
       "boolean" => Boolean,
+      "int" => Int,
+      "long" => Long,
       "float" => Float
     }
     def name2class(name)
@@ -108,7 +100,7 @@ module Jmi
       val = Jmi.get_field_static self, ret, name
       const_set name, val
     end
-     def attach_at(klass, ret, name, *args)
+    def attach_at(klass, ret, name, *args)
       argc = args.size
       args.map! {|a| class2sig(a)}
       jmethod = Jmi::Method.new klass, ret, name, args
@@ -126,6 +118,10 @@ module Jmi
         alias_method sname, name
       end
       name
+    end
+    def as_string
+      J::TYPE_TABLE[self] = "s"
+      @as_string = true
     end
   end
   class Method
@@ -175,6 +171,9 @@ module Jmi
     class << self
       def inherited(klass)
         path = nil
+        if @as_string
+          klass.as_string
+        end
         if @path
           path = @path
           klass.instance_variable_set "@class_path", path
