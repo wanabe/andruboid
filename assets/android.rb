@@ -26,34 +26,47 @@ module Jmi
       end
       module Graphics
         class Typeface < Java::Lang::Object
+          attach_const self, "MONOSPACE"
         end
       end
       module View
         class View < Java::Lang::Object
           module OnClickListener
+            extend Interface
           end
+          attach_auto
           attach_init Android::Content::Context
+        end
+        class ViewGroup < View
         end
       end
       module Widget
-        class LinearLayout < Android::View::View
+        class LinearLayout < Android::View::ViewGroup
+          attach_const Int, "VERTICAL"
           attach Void, "addView", Android::View::View
           attach Void, "setOrientation", Int
           alias << addView
         end
         class TextView < Android::View::View
-          attach Void, "setText", Java::Lang::CharSequence
+          # TODO: support override
+          unless attach Void, "setText", Java::Lang::CharSequence
+            alias text= setText_java
+          end
           attach Void, "setTypeface", Android::Graphics::Typeface
         end
-        class Button < Android::View::View
+        class Button < TextView
           attach Void, "setText", Java::Lang::CharSequence
           attach Void, "setOnClickListener", Android::View::View::OnClickListener
         end
         class Toast < Java::Lang::Object
+          attach_const Int, "LENGTH_LONG"
+          attach_const Int, "LENGTH_SHORT"
           attach_static Toast, "makeText", Android::Content::Context, Java::Lang::CharSequence, Int
           attach Void, "show"
         end
-        class CheckBox < Android::View::View
+        class CompoundButton < Button
+        end
+        class CheckBox < CompoundButton
           attach Void, "setChecked", Boolean
           attach Boolean, "isChecked"
           attach Void, "setText", Java::Lang::CharSequence
@@ -73,7 +86,10 @@ module Jmi
       end
       module App
         class Activity < Java::Lang::Object
-          attach Void, "setContentView", Android::View::View
+          # TODO: support override
+          unless attach Void, "setContentView", Android::View::View
+            alias content_view= setContentView_java
+          end
           attach Android::Content::Pm::PackageManager, "getPackageManager"
         end
       end

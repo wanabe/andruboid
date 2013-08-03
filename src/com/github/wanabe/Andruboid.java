@@ -79,7 +79,7 @@ public class Andruboid extends Activity{
 		Scanner recipe = loadAsset(dir, "recipe", "\n");
 		while(recipe.hasNext()) {
 			at = recipe.next();
-			if (at.contains(".rb")) {
+			if (at.contains(".rb") && at.charAt(0) != '#') {
 				evalScript(mrb, loadAsset(dir, at));
 			}
 		}

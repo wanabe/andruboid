@@ -12,7 +12,7 @@ module Jmi
               names = super
               names = [name] if names.is_a? Proc
               names.each do |name|
-                Jmi::Object.singleton_class.define_method(name) do |*argv|
+                Jmi::Object.singleton_class.define_method(safe_name(name, Jmi::Object.singleton_class)) do |*argv|
                   @jclassobj.send(name, *argv)
                 end
               end
@@ -25,17 +25,23 @@ module Jmi
         class String < CharSequence
         end
         module Reflect
+          module Member
+            extend Interface
+          end
           class Modifier < Java::Lang::Object
             attach_const Int, "STATIC"
             attach_const Int, "FINAL"
             attach_const Int, "PUBLIC"
           end
           class Field < Java::Lang::Object
+            include Member
             attach Int, "getModifiers"
             attach Java::Lang::String, "getName"
             attach Java::Lang::Class, "getType"
           end
           class Method < Java::Lang::Object
+            include Member
+            attach Int, "getModifiers"
             attach Java::Lang::String, "getName"
             attach Java::Lang::Class, "getReturnType"
             attach [Java::Lang::Class], "getParameterTypes"
@@ -45,6 +51,7 @@ module Jmi
           attach_static Class, "forName", String
           attach [Reflect::Field], "getDeclaredFields"
           attach [Reflect::Method], "getDeclaredMethods"
+          attach String, "getName"
         end
       end
     end

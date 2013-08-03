@@ -115,6 +115,22 @@ static mrb_value jmeth_i__call_int(mrb_state *mrb, mrb_value mobj, struct RJMeth
   return mrb_fixnum_value(ji);
 }
 
+static mrb_value jmeth_i__call_long(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jlong jl;
+
+  jl = (*env)->CallLongMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  return mrb_float_value(mrb, (float)jl);
+}
+
+static mrb_value jmeth_i__call_float(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jfloat jf;
+
+  jf = (*env)->CallFloatMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
+  return mrb_float_value(mrb, jf);
+}
+
 static mrb_value jstr2mstr(mrb_state *mrb, jstring jstr) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   mrb_value mstr;
@@ -307,6 +323,12 @@ static inline caller_t type2caller(const char *ctype, int is_static, int depth) 
     } break;
     case 'I': {
       return jmeth_i__call_int;
+    } break;
+    case 'J': {
+      return jmeth_i__call_long;
+    } break;
+    case 'F': {
+      return jmeth_i__call_float;
     } break;
     case 's': {
       return jmeth_i__call_str;

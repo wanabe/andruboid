@@ -3,7 +3,7 @@ module Jmi
     module Java
       module Lang
         module Reflect
-          class Field < Java::Lang::Object
+          module Member
             def static?
               modifiers & Modifier::STATIC != 0
             end
@@ -45,14 +45,15 @@ module Jmi
                 var_name = rname[4..-1]
                 names.push "#{var_name}="
                 ivar = "@#{var_name}"
-                klass.define_method(rname) do |arg|
+                name = safe_name(rname)
+                klass.define_method(name) do |arg|
                   __send__ jname, arg
                   instance_variable_set ivar, arg
                 end
-                name = rname
               when argc == 1 && rname.index("add_") == 0
                 var_name = "@#{rname[4..-1]}"
-                klass.define_method(rname) do |arg|
+                name = safe_name(rname)
+                klass.define_method(name) do |arg|
                   __send__ jname, arg
                   list = instance_variable_get ivar
                   if list
@@ -61,7 +62,6 @@ module Jmi
                     instance_variable_set opt, [arg]
                   end
                 end
-                name = rname
               else
                 names.push rname
                 case
@@ -73,8 +73,10 @@ module Jmi
               end
             end
 
-            names.each do |alias_name|
+            names.map! do |alias_name|
+              alias_name = safe_name(alias_name)
               klass.alias_method alias_name, name
+              alias_name
             end
             names.push name
             names
@@ -85,31 +87,18 @@ module Jmi
   end
   module Definition
     def attach_auto
-      path = class_path(self, ".")
-      klass = Java::Lang::Class.for_name(path)
-      klass.declared_fields.each do |field|
-        type = field.type
-        next if type.is_a? Java::Lang::Class
-        next unless field.public? && field.static? && field.final?
-        attach_const type, field.name
-      end
     end
   end
   module J::Java::Lang
     Class.attach_alias Class.singleton_class, "forName", 1
-    Class.attach [Reflect::Field], "getDeclaredFields"
-    Class.attach [Reflect::Method], "getDeclaredMethods"
+    Class.attach_alias Class, "getDeclaredFields", 0
+    Class.attach_alias Class, "getDeclaredMethods", 0
     Reflect::Field.attach_alias Reflect::Field, "getModifiers", 0
     Reflect::Field.attach_alias Reflect::Field, "getName", 0
     Reflect::Field.attach_alias Reflect::Field, "getType", 0
+    Reflect::Method.attach_alias Reflect::Method, "getModifiers", 0
     Reflect::Method.attach_alias Reflect::Method, "getName", 0
     Reflect::Method.attach_alias Reflect::Method, "getReturnType", 0
     Reflect::Method.attach_alias Reflect::Method, "getParameterTypes", 0
-    [
-      Object, Class, CharSequence, String,
-      Reflect::Modifier, Reflect::Field, Reflect::Method
-    ].each do |klass|
-      klass.attach_auto
-    end
   end
 end

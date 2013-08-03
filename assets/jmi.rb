@@ -104,18 +104,14 @@ module Jmi
       argc = args.size
       args.map! {|a| class2sig(a)}
       jmethod = Jmi::Method.new klass, ret, name, args
-      safe_name(name)
-      klass.define_method(name) do |*args|
+
+      klass.define_method(safe_name(name)) do |*args|
         jmethod.call self, name, args
       end
     end
-    def safe_name(name)
-      sname = name
-      if method_defined?(name)
-        while method_defined?(sname)
-          sname += "_rb"
-        end
-        alias_method sname, name
+    def safe_name(name, klass = self)
+      while klass.method_defined?(name)
+        name += "_java"
       end
       name
     end
@@ -157,6 +153,14 @@ module Jmi
         obj.instance_variable_set "@generics", []
         obj.class_path = class_path(obj)
       end
+    end
+  end
+  module Interface
+    extend J
+    include Definition
+    def self.extended(klass)
+      path = class_path(klass)
+      NAME_TABLE[path.gsub("/", ".")] = klass
     end
   end
   class Object
