@@ -1,16 +1,8 @@
 module Jmi
   module J
-    module Com
-      module Github
-        module Wanabe
-          class Andruboid
-          end
-        end
-      end
-    end
     module Android
       module Content
-        class Context
+        class Context < Java::Lang::Object
         end
         module Pm
           class PackageManager < Java::Lang::Object
@@ -35,7 +27,6 @@ module Jmi
             extend Interface
           end
           attach_auto
-          attach_init Android::Content::Context
         end
         class ViewGroup < View
         end
@@ -43,19 +34,19 @@ module Jmi
       module Widget
         class LinearLayout < Android::View::ViewGroup
           attach_const Int, "VERTICAL"
+          attach_init Android::Content::Context
           attach Void, "addView", Android::View::View
           attach Void, "setOrientation", Int
           alias << addView
         end
         class TextView < Android::View::View
-          # TODO: support override
-          unless attach Void, "setText", Java::Lang::CharSequence
-            alias text= setText_java
-          end
+          attach_init Android::Content::Context
+          attach Void, "setText", Int
+          attach Void, "setText", Java::Lang::CharSequence
           attach Void, "setTypeface", Android::Graphics::Typeface
         end
         class Button < TextView
-          attach Void, "setText", Java::Lang::CharSequence
+          attach_init Android::Content::Context
           attach Void, "setOnClickListener", Android::View::View::OnClickListener
         end
         class Toast < Java::Lang::Object
@@ -67,6 +58,7 @@ module Jmi
         class CompoundButton < Button
         end
         class CheckBox < CompoundButton
+          attach_init Android::Content::Context
           attach Void, "setChecked", Boolean
           attach Boolean, "isChecked"
           attach Void, "setText", Java::Lang::CharSequence
@@ -75,28 +67,58 @@ module Jmi
         class RadioGroup < LinearLayout
           module OnCheckedChangeListener
           end
+          attach_init Android::Content::Context
           attach Int, "getCheckedRadioButtonId"
           attach Void, "setOnCheckedChangeListener", Android::Widget::RadioGroup::OnCheckedChangeListener
         end
         class RadioButton < Button
+          attach_init Android::Content::Context
           attach Int, "getId"
         end
         class EditText < TextView
+          attach_init Android::Content::Context
         end
       end
       module App
-        class Activity < Java::Lang::Object
-          # TODO: support override
-          unless attach Void, "setContentView", Android::View::View
-            alias content_view= setContentView_java
-          end
+        class Activity < Content::Context
+          attach Void, "setContentView", Android::View::View
           attach Android::Content::Pm::PackageManager, "getPackageManager"
+        end
+      end
+    end
+    module Com
+      module Github
+        module Wanabe
+          class Andruboid < Android::App::Activity
+            class Listener < Jmi::Object
+              include Android::View::View::OnClickListener
+              @table = []
+              attach_init Com::Github::Wanabe::Andruboid, Int
+              def initialize(arg = nil, &block)
+                block ||= arg
+                id = self.class.push block
+                super Jmi::Main.main, id
+              end
+              class << self
+                def push(block)
+                  id = @table.size
+                  @table.push block
+                  id
+                end
+                def call(type, id)
+                  @table[id].call
+                end
+              end
+            end
+          end
         end
       end
     end
   end
 
-  class Main < J::Android::App::Activity
+  Main = J::Com::Github::Wanabe::Andruboid
+  Listener = Main::Listener
+  class Main
     def initialize
       Jmi::Main.main = self
     end
@@ -108,26 +130,6 @@ module Jmi
       def inherited(main)
         super
         @main = main
-      end
-    end
-  end
-
-  class Listener < Jmi::Object.force_path("com/github/wanabe/Andruboid$Listener")
-    @table = []
-    attach_init Com::Github::Wanabe::Andruboid,Int
-    def initialize(arg = nil, &block)
-      block ||= arg
-      id = self.class.push block
-      super Jmi::Main.main, id
-    end
-    class << self
-      def push(block)
-        id = @table.size
-        @table.push block
-        id
-      end
-      def call(type, id)
-        @table[id].call
       end
     end
   end

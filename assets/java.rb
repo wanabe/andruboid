@@ -18,6 +18,7 @@ module Jmi
       module Util
         module List
           extend Generics
+          extend Interface
           attach Int, "size"
           attach Generics, "get", Int
         end

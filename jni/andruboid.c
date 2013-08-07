@@ -65,9 +65,17 @@ struct RJMethod {
   } opt2;
   int argc;
   jvalue *argv;
+  char *types;
 };
 
 static void jmeth_free(mrb_state *mrb, void *p) {
+  struct RJMethod *smeth = (struct RJMethod *)p;
+  if (smeth->argv) {
+    free(smeth->argv);
+  }
+  if (smeth->types) {
+    free(smeth->types);
+  }
   free(p);
 }
 
@@ -365,6 +373,10 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   int is_static = 0;
   struct RArray *ary;
 
+  DATA_TYPE(self) = &jmeth_data_type;
+  DATA_PTR(self) = smeth;
+  smeth->types = NULL;
+
   mrb_get_args(mrb, "oooo", &miclass, &mret, &mname, &margs);
   if (mrb_type(miclass) == MRB_TT_SCLASS) {
     is_static = 1;
@@ -373,6 +385,11 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   mclass = mrb_iv_get(mrb, miclass, mrb_intern_cstr(mrb, "jclass"));
   jclazz = DATA_PTR(mclass);
   cname = mrb_string_value_cstr(mrb, &mname);
+
+  msig = mrb_funcall(mrb, self, "get_type", 1, margs);
+  csig = mrb_string_value_cstr(mrb, &msig);
+  smeth->types = (char*)malloc(RSTRING_LEN(msig) + 1);
+  memcpy(smeth->types, csig, RSTRING_LEN(msig) + 1);
 
   msig = mrb_funcall(mrb, self, "get_sig", 2, mret, margs);
   csig = mrb_string_value_cstr(mrb, &msig);
@@ -423,45 +440,83 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
+#define TYPE_VAL(c, mtype) (((unsigned char)c) | ((mtype) << 8))
+
+static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  mrb_value mobj, mname, margs;
-  struct RJMethod *smeth;
+  mrb_value margs;
+  struct RJMethod *smeth = DATA_PTR(self);
   struct RArray *ary;
   int i;
+  char *types = smeth->types;
 
-  smeth = DATA_PTR(self);
-  mrb_get_args(mrb, "ooo", &mobj, &mname, &margs);
+  mrb_get_args(mrb, "o", &margs);
   ary = mrb_ary_ptr(margs);
-
   if (ary->len != smeth->argc) {
-    mrb_raisef(mrb,E_ARGUMENT_ERROR, "Jmi: arg size wrong");
+    return mrb_false_value();
   }
   for (i = 0; i < ary->len; i++) {
     mrb_value item = ary->ptr[i];
     jvalue *jarg = smeth->argv + i;
-    switch (mrb_type(item)) {
-      case MRB_TT_FALSE:
-      case MRB_TT_TRUE: {
+
+    switch (TYPE_VAL(*types, mrb_type(item))) {
+      case TYPE_VAL('Z', MRB_TT_FALSE):
+      case TYPE_VAL('Z', MRB_TT_TRUE): {
         jarg->z = mrb_bool(item);
       } break;
-      case MRB_TT_FIXNUM: {
+      case TYPE_VAL('I',MRB_TT_FIXNUM): {
         jarg->i = mrb_fixnum(item);
       } break;
-      case MRB_TT_DATA: {
-        jarg->l = (jobject)DATA_PTR(item);
-      } break;
-      case MRB_TT_STRING: {
+      case TYPE_VAL('s', MRB_TT_STRING): {
         jarg->l = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &item));
       } break;
+      case TYPE_VAL('L', MRB_TT_DATA): {
+        char *tail;
+        mrb_value mclass;
+
+        tail = strchr(types, ';');
+        mclass = mrb_str_new(mrb, types + 1, tail - types - 1);
+        mclass = mrb_funcall(mrb, item, "name2class", 1, mclass);
+        if (mrb_nil_p(mclass)) {
+          return mrb_false_value();
+        }
+        if (!mrb_obj_is_kind_of(mrb, item, mrb_class_ptr(mclass))) {
+          return mrb_false_value();
+        }
+        types = tail;
+        jarg->l = (jobject)DATA_PTR(item);
+      } break;
+      default: {
+        return mrb_false_value();
+      }
     }
+    types++;
   }
+  return mrb_true_value();
+}
+
+static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  mrb_value mobj;
+  struct RJMethod *smeth;
+  int i;
+  char *types;
+
+  smeth = DATA_PTR(self);
+  mrb_get_args(mrb, "o", &mobj);
+
   mobj = smeth->caller(mrb, mobj, smeth);
-  for (i = 0; i < ary->len; i++) {
+  types = smeth->types;
+  for (i = 0; i < smeth->argc; i++) {
     jvalue *jarg = smeth->argv + i;
-    switch (mrb_type(ary->ptr[i])) {
-      case MRB_TT_STRING: {
+    switch (*(++types)) {
+      case 's': {
         (*env)->DeleteLocalRef(env, jarg->l);
+      } break;
+      case 'L': {
+        while (*types && *types != ';') {
+          types++;
+        }
       } break;
     }
   }
@@ -538,7 +593,8 @@ static struct RClass *init_jmi(mrb_state *mrb) {
     "Method", mrb->object_class);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
   mrb_define_method(mrb, klass, "initialize", jmeth__initialize, ARGS_REQ(3));
-  mrb_define_method(mrb, klass, "call", jmeth__call, ARGS_REST());
+  mrb_define_method(mrb, klass, "setup", jmeth__setup, ARGS_REQ(1));
+  mrb_define_method(mrb, klass, "call", jmeth__call, ARGS_REQ(1));
 
   klass = mrb_define_class_under(mrb, mod,
     "Object", mrb->object_class);

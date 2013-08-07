@@ -12,6 +12,10 @@ module Jmi
     class Int
     end
     class Long
+      def initialize(lo, hi = 0)
+        @lo, @hi = lo, hi
+      end
+      attr_reader :lo, :hi
     end
     class Float
     end
@@ -69,7 +73,10 @@ module Jmi
     end
     def get_sig(ret, args)
       ret = class2sig(ret)
-      "(#{args.join("")})#{ret}"
+      "(#{args.map{|a|class2sig(a)}.join("")})#{ret}"
+    end
+    def get_type(args)
+      args.map{|a|class2type(a)}.join("")
     end
     NAME_TABLE = {
       "void" => Void,
@@ -84,11 +91,10 @@ module Jmi
   end
   module Definition
     include Jmi::J
-    attr_reader :init_method
+    attr_reader :method_table
     def attach_init(*args)
-      args.map! {|a| class2sig(a)}
-      @init_args = args
-      @init_method = Jmi::Method.new self, Void, "<init>", args
+      @method_table[nil] ||= []
+      @method_table[nil].push Jmi::Method.new self, Void, "<init>", args
     end
     def attach(ret, name, *args)
       attach_at self, ret, name, *args
@@ -102,11 +108,28 @@ module Jmi
     end
     def attach_at(klass, ret, name, *args)
       argc = args.size
-      args.map! {|a| class2sig(a)}
       jmethod = Jmi::Method.new klass, ret, name, args
-
-      klass.define_method(safe_name(name)) do |*args|
-        jmethod.call self, name, args
+      if @method_table.include? name
+        @method_table[name].push jmethod
+      else
+        methods = [jmethod]
+        @method_table[name] = methods
+        klass.define_method(safe_name(name)) do |*args|
+          found = false
+          ret = nil
+          methods.each do |meth|
+            if meth.setup args
+              found = true
+              ret = meth.call self#, name
+              break
+            end
+          end
+          if found
+            ret
+          else
+            raise
+          end
+        end
       end
     end
     def safe_name(name, klass = self)
@@ -159,7 +182,9 @@ module Jmi
     extend J
     include Definition
     def self.extended(klass)
+      klass.instance_variable_set "@method_table", Hash.new do [] end
       path = class_path(klass)
+      NAME_TABLE[path] = klass
       NAME_TABLE[path.gsub("/", ".")] = klass
     end
   end
@@ -168,12 +193,17 @@ module Jmi
     extend J
     extend Definition
     def initialize(*args)
-      init = self.class.init_method
-      raise "#{self.class} has no consructor" unless init
-      init.call self, :initialize, args
+      methods = self.class.method_table[nil]
+      raise "#{self.class} has no consructor" if methods.empty?
+      methods.each do |meth|
+        if meth.setup args
+          meth.call self
+        end
+      end
     end
     class << self
       def inherited(klass)
+        klass.instance_variable_set "@method_table", Hash.new do [] end
         path = nil
         if @as_string
           klass.as_string
@@ -185,13 +215,9 @@ module Jmi
         else
           path = class_path(klass)
         end
+        NAME_TABLE[path] = klass
         NAME_TABLE[path.gsub("/", ".")] = klass
         klass.class_path = path
-        if @init_args
-          init_method = Jmi::Method.new klass, Void, "<init>", @init_args
-          klass.instance_variable_set "@init_args", @init_args
-          klass.instance_variable_set "@init_method", init_method
-        end
       end
       def force_path(path)
         @path = path
