@@ -51,6 +51,21 @@ module Jmi
       edittext.text = "some text"
 
       layout << edittext
+
+      layout = LinearLayout.new(self)
+      vlayout << layout
+
+      adapter = ArrayAdapter[Java::Lang::String].new self, Android::R::Layout::SIMPLE_LIST_ITEM_1
+      adapter.add "one"
+      adapter.add "two"
+      adapter.add "three"
+      listview = ListView.new(self)
+      listview.adapter = adapter
+      listview.on_item_click_listener = Listener.new do |pos|
+        edittext.text = "#{adapter.get_item(pos)}"
+      end
+
+      layout << listview
     end
   end
 end

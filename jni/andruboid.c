@@ -386,7 +386,7 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   jclazz = DATA_PTR(mclass);
   cname = mrb_string_value_cstr(mrb, &mname);
 
-  msig = mrb_funcall(mrb, self, "get_type", 1, margs);
+  msig = mrb_funcall(mrb, miclass, "get_type", 1, margs);
   csig = mrb_string_value_cstr(mrb, &msig);
   smeth->types = (char*)malloc(RSTRING_LEN(msig) + 1);
   memcpy(smeth->types, csig, RSTRING_LEN(msig) + 1);
@@ -422,7 +422,7 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
       smeth->opt1.klass = mrb_class_ptr(miclass);
     }
 
-    msig = mrb_funcall(mrb, self, "class2type", 1, mret);
+    msig = mrb_funcall(mrb, miclass, "class2type", 1, mret);
     csig = mrb_string_value_cstr(mrb, &msig);
     smeth->caller = type2caller(csig, is_static, depth);
     smeth->opt2.depth = depth;
@@ -666,13 +666,13 @@ void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) 
   check_exc(mrb);
 }
 
-void Java_com_github_wanabe_Andruboid_handle(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid) {
+void Java_com_github_wanabe_Andruboid_handle(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid, jint jopt) {
   mrb_state *mrb = (mrb_state *)jmrb;
   int ai = mrb_gc_arena_save(mrb);
   struct RClass *mod = mrb_class_get(mrb, "Jmi");
   mrb_value mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Listener"));
 
-  mrb_funcall(mrb, mclass, "call", 2, mrb_fixnum_value(jtype), mrb_fixnum_value(jid));
+  mrb_funcall(mrb, mclass, "call", 3, mrb_fixnum_value(jtype), mrb_fixnum_value(jid), mrb_fixnum_value(jopt));
   mrb_gc_arena_restore(mrb, ai);
   check_exc(mrb);
 }

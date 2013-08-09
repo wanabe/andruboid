@@ -69,6 +69,13 @@ module Jmi
       class2item(klass, SIG_TABLE)
     end
     def class2type(klass)
+      if klass == Generics
+        if @iclass
+          klass = @iclass
+        else
+          klass = self
+        end
+      end
       class2item(klass, TYPE_TABLE) || class2sig(klass)
     end
     def get_sig(ret, args)
@@ -104,7 +111,7 @@ module Jmi
     end
     def attach_const(ret, name)
       val = Jmi.get_field_static self, ret, name
-      const_set name, val
+      const_set name.upcase, val
     end
     def attach_at(klass, ret, name, *args)
       argc = args.size
@@ -127,7 +134,7 @@ module Jmi
           if found
             ret
           else
-            raise
+            raise "no method '#{name}' matching #{args.inspect}"
           end
         end
       end
@@ -159,11 +166,17 @@ module Jmi
     def [](iclass)
       klass = @table[iclass]
       unless klass
-        klass = ::Class.new Jmi::Object.force_path(Jmi::Object.class_path(self))
+        if self.is_a? ::Class
+          klass = ::Class.new force_path(Jmi::Object.class_path(self))
+          klass.method_table[nil] = method_table[nil] if method_table[nil]
+        else
+          klass = ::Class.new Jmi::Object.force_path(Jmi::Object.class_path(self))
+          klass.include self
+        end
         Jmi.set_classpath klass, "#{self}<#{iclass}>"
-        klass.include self
         klass.instance_variable_set "@iclass", iclass
         @generics.each do |args|
+          $a=2 if args[1].index("getItem")
           klass.attach *args
         end
         @table[iclass] = klass
@@ -182,7 +195,7 @@ module Jmi
     extend J
     include Definition
     def self.extended(klass)
-      klass.instance_variable_set "@method_table", Hash.new do [] end
+      klass.instance_variable_set "@method_table", {}
       path = class_path(klass)
       NAME_TABLE[path] = klass
       NAME_TABLE[path.gsub("/", ".")] = klass
@@ -194,7 +207,7 @@ module Jmi
     extend Definition
     def initialize(*args)
       methods = self.class.method_table[nil]
-      raise "#{self.class} has no consructor" if methods.empty?
+      raise "#{self.class} has no consructor" unless methods
       methods.each do |meth|
         if meth.setup args
           meth.call self
@@ -203,7 +216,7 @@ module Jmi
     end
     class << self
       def inherited(klass)
-        klass.instance_variable_set "@method_table", Hash.new do [] end
+        klass.instance_variable_set "@method_table", {}
         path = nil
         if @as_string
           klass.as_string
@@ -221,7 +234,7 @@ module Jmi
       end
       def force_path(path)
         @path = path
-        Jmi::Object
+        self
       end
     end
   end

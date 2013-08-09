@@ -13,6 +13,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.view.View;
 import android.widget.RadioGroup;
+import android.widget.AdapterView;
 import android.content.DialogInterface;
 
 public class Andruboid extends Activity{
@@ -85,9 +86,9 @@ public class Andruboid extends Activity{
 		}
 	}
 
-	void handleEvent(int type, int id) {
+	void handleEvent(int type, int id, int opt) {
 		try {
-			handle(mrb, type, id);
+			handle(mrb, type, id, opt);
 		} catch(Throwable e) {
 			at = "handle " + Integer.toString(type);
 			showError(e);
@@ -97,7 +98,7 @@ public class Andruboid extends Activity{
 	public native int initialize();
 	public native void evalScript(int mrb, String scr);
 	public native void run(int mrb);
-	public native void handle(int mrb, int type, int id);
+	public native void handle(int mrb, int type, int id, int opt);
 
 	static {
 		System.loadLibrary("andruboid");
@@ -105,10 +106,12 @@ public class Andruboid extends Activity{
 
 	static class Listener implements 
 	  View.OnClickListener, 
-	  RadioGroup.OnCheckedChangeListener {
+	  RadioGroup.OnCheckedChangeListener,
+	  AdapterView.OnItemClickListener {
 		private static final int
 		  ON_CLICK = 0,
-		  ON_CHECKED_CHANGE = 1;
+		  ON_CHECKED_CHANGE = 1,
+		  ON_ITEM_CLICK = 2;
 		Andruboid self;
 		int id;
 
@@ -119,12 +122,16 @@ public class Andruboid extends Activity{
 
 		@Override
 		public void onClick(View v) {
-			self.handleEvent(ON_CLICK, id);
+			self.handleEvent(ON_CLICK, id, 0);
 		}
 
 		@Override
 		public void onCheckedChanged(RadioGroup rg, int checkedId) {
-			self.handleEvent(ON_CHECKED_CHANGE, id);
+			self.handleEvent(ON_CHECKED_CHANGE, id, 0);
+		}
+		@Override
+		public void onItemClick(AdapterView<?> parent, View view, int position, long itemId) {
+			self.handleEvent(ON_ITEM_CLICK, id, position);
 		}
 	}
 }

@@ -1,6 +1,11 @@
 module Jmi
   module J
     module Android
+      class R
+        class Layout < Java::Lang::Object.force_path("android/R$layout")
+          attach_const Int, "simple_list_item_1"
+        end
+      end
       module Content
         class Context < Java::Lang::Object
         end
@@ -66,10 +71,11 @@ module Jmi
         end
         class RadioGroup < LinearLayout
           module OnCheckedChangeListener
+            extend Interface
           end
           attach_init Android::Content::Context
           attach Int, "getCheckedRadioButtonId"
-          attach Void, "setOnCheckedChangeListener", Android::Widget::RadioGroup::OnCheckedChangeListener
+          attach Void, "setOnCheckedChangeListener", OnCheckedChangeListener
         end
         class RadioButton < Button
           attach_init Android::Content::Context
@@ -77,6 +83,29 @@ module Jmi
         end
         class EditText < TextView
           attach_init Android::Content::Context
+        end
+        module ListAdapter
+          extend Interface
+        end
+        class ArrayAdapter < Java::Lang::Object
+          extend Generics
+          include ListAdapter
+          attach_init Content::Context, Int
+          attach Void, "add", Generics
+          attach Generics, "getItem", Int
+          #alias [] getItem
+        end
+        class AdapterView < Android::View::View
+          module OnItemClickListener
+            extend Interface
+          end
+          attach Void, "setOnItemClickListener", OnItemClickListener
+          attach Java::Lang::Object, "getItemAtPosition", Int
+          alias [] getItemAtPosition
+        end
+        class ListView < AdapterView
+          attach_init Android::Content::Context
+          attach Void, "setAdapter", ListAdapter
         end
       end
       module App
@@ -92,6 +121,7 @@ module Jmi
           class Andruboid < Android::App::Activity
             class Listener < Jmi::Object
               include Android::View::View::OnClickListener
+              include Android::Widget::AdapterView::OnItemClickListener
               @table = []
               attach_init Com::Github::Wanabe::Andruboid, Int
               def initialize(arg = nil, &block)
@@ -105,8 +135,8 @@ module Jmi
                   @table.push block
                   id
                 end
-                def call(type, id)
-                  @table[id].call
+                def call(type, id, opt)
+                  @table[id].call(opt)
                 end
               end
             end
