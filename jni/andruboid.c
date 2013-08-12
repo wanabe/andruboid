@@ -5,6 +5,7 @@
 #include "mruby-all.h"
 
 char err[1024] = {0};
+int debug = 0;
 
 static void jobj_free(mrb_state *mrb, void *p) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
@@ -313,6 +314,8 @@ static mrb_value jmeth_i__call_constructor(mrb_state *mrb, mrb_value mobj, struc
   if (jobj) {
     DATA_PTR(mobj) = (*env)->NewGlobalRef(env, jobj);
     (*env)->DeleteLocalRef(env, jobj);
+  } else {
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "constructor returns null");
   }
   return mobj;
 }
@@ -440,7 +443,7 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-#define TYPE_VAL(c, mtype) (((unsigned char)c) | ((mtype) << 8))
+#define TYPE_VAL(c, mtype) (((int)(unsigned char)c) | ((mtype) << 8))
 
 static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
@@ -456,6 +459,9 @@ static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
     return mrb_false_value();
   }
   for (i = 0; i < ary->len; i++) {
+    smeth->argv[i].i = 0;
+  }
+  for (i = 0; i < ary->len; i++) {
     mrb_value item = ary->ptr[i];
     jvalue *jarg = smeth->argv + i;
 
@@ -464,18 +470,24 @@ static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
       case TYPE_VAL('Z', MRB_TT_TRUE): {
         jarg->z = mrb_bool(item);
       } break;
-      case TYPE_VAL('I',MRB_TT_FIXNUM): {
+      case TYPE_VAL('I', MRB_TT_FIXNUM): {
         jarg->i = mrb_fixnum(item);
+      } break;
+      case TYPE_VAL('F', MRB_TT_FLOAT): {
+        jarg->f = mrb_float(item);
+      } break;
+      case TYPE_VAL('F', MRB_TT_FIXNUM): {
+        jarg->f = mrb_fixnum(item);
       } break;
       case TYPE_VAL('s', MRB_TT_STRING): {
         jarg->l = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &item));
       } break;
       case TYPE_VAL('L', MRB_TT_DATA): {
-        char *tail;
+        char *cname = types + 1;
         mrb_value mclass;
 
-        tail = strchr(types, ';');
-        mclass = mrb_str_new(mrb, types + 1, tail - types - 1);
+        types = strchr(types, ';');
+        mclass = mrb_str_new(mrb, cname, types - cname);
         mclass = mrb_funcall(mrb, item, "name2class", 1, mclass);
         if (mrb_nil_p(mclass)) {
           return mrb_false_value();
@@ -483,7 +495,6 @@ static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
         if (!mrb_obj_is_kind_of(mrb, item, mrb_class_ptr(mclass))) {
           return mrb_false_value();
         }
-        types = tail;
         jarg->l = (jobject)DATA_PTR(item);
       } break;
       default: {
@@ -548,6 +559,10 @@ static mrb_value jmi_s__get_field_static(mrb_state *mrb, mrb_value self) {
   mstr = mrb_funcall(mrb, mmod, "class2sig", 1, mret);
   cstr = mrb_string_value_cstr(mrb, &mstr);
   fid = (*env)->GetStaticFieldID(env, jclazz, cname, cstr);
+  if ((*env)->ExceptionCheck(env)) {
+    mrb_raisef(mrb, E_NAME_ERROR, "Jmi: can't get field %S", mstr);
+  }
+
   mstr = mrb_funcall(mrb, mmod, "class2type", 1, mret);
   cstr = mrb_string_value_cstr(mrb, &mstr);
   switch (cstr[0]) {
@@ -571,10 +586,14 @@ static mrb_value jmi_s__get_field_static(mrb_state *mrb, mrb_value self) {
       jstr = (*env)->GetStaticObjectField(env, jclazz, fid);
       return jstr2mstr(mrb, jstr);
     } break;
-
   }
   mclass = mrb_funcall(mrb, mclass, "inspect", 0);
   mrb_raisef(mrb, E_RUNTIME_ERROR, "unsupported field: %S == %S in %S", mstr, mname, mclass);
+  return mrb_nil_value();
+}
+
+static mrb_value jmi_s__debug(mrb_state *mrb, mrb_value self) {
+  debug = !debug;
   return mrb_nil_value();
 }
 
@@ -584,6 +603,7 @@ static struct RClass *init_jmi(mrb_state *mrb) {
     "Jmi");
   mrb_define_singleton_method(mrb, (struct RObject *)mod, "set_classpath", jmi_s__set_class_path, ARGS_REQ(2));
   mrb_define_singleton_method(mrb, (struct RObject *)mod, "get_field_static", jmi_s__get_field_static, ARGS_REQ(3));
+  mrb_define_singleton_method(mrb, (struct RObject *)mod, "debug", jmi_s__debug, ARGS_NONE());
 
   klass = mrb_define_module_under(mrb, mod,
     "Definition");
@@ -627,6 +647,7 @@ jint Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz) {
   mrb_state *mrb = mrb_open();
   int ai = mrb_gc_arena_save(mrb);
 
+  debug = 0;
   mrb->ud = (void*)env;
   init_jmi(mrb);
   mrb_gc_arena_restore(mrb, ai);

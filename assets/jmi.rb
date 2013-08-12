@@ -95,9 +95,28 @@ module Jmi
     def name2class(name)
       NAME_TABLE[name]
     end
+    def proc_method(name, methods)
+      lambda do |*args|
+        found = false
+        ret = nil
+        methods.each do |meth|
+          if meth.setup args
+            found = true
+            ret = meth.call self
+            break
+          end
+        end
+        if found
+          ret
+        else
+          recv = self.is_a?(::Class) ? "#{self}." : "#{self.class}#"
+          raise "mismatching #{recv}#{name}(#{args.map{|a|a.inspect}.join(', ')})"
+        end
+      end
+    end
   end
   module Definition
-    include Jmi::J
+    include J
     attr_reader :method_table
     def attach_init(*args)
       @method_table[nil] ||= []
@@ -121,22 +140,8 @@ module Jmi
       else
         methods = [jmethod]
         @method_table[name] = methods
-        klass.define_method(safe_name(name)) do |*args|
-          found = false
-          ret = nil
-          methods.each do |meth|
-            if meth.setup args
-              found = true
-              ret = meth.call self#, name
-              break
-            end
-          end
-          if found
-            ret
-          else
-            raise "no method '#{name}' matching #{args.inspect}"
-          end
-        end
+        block = proc_method(name, methods)
+        klass.define_method(safe_name(name), &block)
       end
     end
     def safe_name(name, klass = self)
@@ -176,7 +181,6 @@ module Jmi
         Jmi.set_classpath klass, "#{self}<#{iclass}>"
         klass.instance_variable_set "@iclass", iclass
         @generics.each do |args|
-          $a=2 if args[1].index("getItem")
           klass.attach *args
         end
         @table[iclass] = klass
@@ -206,13 +210,11 @@ module Jmi
     extend J
     extend Definition
     def initialize(*args)
-      methods = self.class.method_table[nil]
-      raise "#{self.class} has no consructor" unless methods
-      methods.each do |meth|
-        if meth.setup args
-          meth.call self
-        end
-      end
+      klass = self.class
+      methods = klass.method_table[nil]
+      raise "#{klass} has no constructor" unless methods
+      proc_method("<init>", methods).call(*args)
+      self
     end
     class << self
       def inherited(klass)

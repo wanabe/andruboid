@@ -31,18 +31,33 @@ module Jmi
           module OnClickListener
             extend Interface
           end
-          attach_auto
         end
         class ViewGroup < View
+          class LayoutParams < Java::Lang::Object
+            attach_init Int, Int
+            attach_const Int, "WRAP_CONTENT"
+            attach_const Int, "MATCH_PARENT"
+          end
+          attach Void, "addView", Android::View::View
+          attach Void, "addView", Android::View::View, LayoutParams
+          alias << addView
+          attach Void, "removeAllViews"
+          alias remove_all remove_all_views
+        end
+        class View
+          attach Void, "setLayoutParams", ViewGroup::LayoutParams
         end
       end
       module Widget
         class LinearLayout < Android::View::ViewGroup
+          class LayoutParams < Android::View::ViewGroup::LayoutParams
+            attach_init Int, Int, Float
+            attach_init Int, Int
+            attach Java::Lang::String, "debug", Java::Lang::String
+          end
           attach_const Int, "VERTICAL"
           attach_init Android::Content::Context
-          attach Void, "addView", Android::View::View
           attach Void, "setOrientation", Int
-          alias << addView
         end
         class TextView < Android::View::View
           attach_init Android::Content::Context
@@ -93,7 +108,9 @@ module Jmi
           attach_init Content::Context, Int
           attach Void, "add", Generics
           attach Generics, "getItem", Int
-          #alias [] getItem
+          def [](index)
+            get_item index
+          end
         end
         class AdapterView < Android::View::View
           module OnItemClickListener
@@ -103,7 +120,13 @@ module Jmi
           attach Java::Lang::Object, "getItemAtPosition", Int
           alias [] getItemAtPosition
         end
-        class ListView < AdapterView
+        class AbsListView < AdapterView
+          module OnScrollListener
+            extend Interface
+          end
+          attach Void, "setOnScrollListener", OnScrollListener
+        end
+        class ListView < AbsListView
           attach_init Android::Content::Context
           attach Void, "setAdapter", ListAdapter
         end
@@ -122,6 +145,7 @@ module Jmi
             class Listener < Jmi::Object
               include Android::View::View::OnClickListener
               include Android::Widget::AdapterView::OnItemClickListener
+              include Android::Widget::AbsListView::OnScrollListener
               @table = []
               attach_init Com::Github::Wanabe::Andruboid, Int
               def initialize(arg = nil, &block)
