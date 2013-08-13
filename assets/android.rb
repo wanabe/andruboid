@@ -4,6 +4,8 @@ module Jmi
       class R
         class Layout < Java::Lang::Object.force_path("android/R$layout")
           attach_const Int, "simple_list_item_1"
+          attach_const Int, "simple_spinner_item"
+          attach_const Int, "simple_spinner_dropdown_item"
         end
       end
       module Content
@@ -102,18 +104,26 @@ module Jmi
         module ListAdapter
           extend Interface
         end
+        module SpinnerAdapter
+          extend Interface
+        end
         class ArrayAdapter < Java::Lang::Object
           extend Generics
           include ListAdapter
+          include SpinnerAdapter
           attach_init Content::Context, Int
           attach Void, "add", Generics
           attach Generics, "getItem", Int
+          attach Void, "setDropDownViewResource", Int
           def [](index)
             get_item index
           end
         end
         class AdapterView < Android::View::View
           module OnItemClickListener
+            extend Interface
+          end
+          module OnItemSelectedListener
             extend Interface
           end
           attach Void, "setOnItemClickListener", OnItemClickListener
@@ -130,6 +140,11 @@ module Jmi
           attach_init Android::Content::Context
           attach Void, "setAdapter", ListAdapter
         end
+        class Spinner < AdapterView
+          attach_init Android::Content::Context
+          attach Void, "setAdapter", SpinnerAdapter
+          attach Void, "setOnItemSelectedListener", AdapterView::OnItemSelectedListener
+        end
       end
       module App
         class Activity < Content::Context
@@ -145,7 +160,7 @@ module Jmi
             class Listener < Jmi::Object
               include Android::View::View::OnClickListener
               include Android::Widget::AdapterView::OnItemClickListener
-              include Android::Widget::AbsListView::OnScrollListener
+              include Android::Widget::AdapterView::OnItemSelectedListener
               @table = []
               attach_init Com::Github::Wanabe::Andruboid, Int
               def initialize(arg = nil, &block)

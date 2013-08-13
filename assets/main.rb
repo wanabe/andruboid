@@ -97,5 +97,23 @@ module Jmi
       end
       @layout << listview
     end
+    def spinner
+      adapter = ArrayAdapter[Java::Lang::String].new self, Android::R::Layout::SIMPLE_SPINNER_ITEM
+      adapter.drop_down_view_resource = Android::R::Layout::SIMPLE_SPINNER_DROPDOWN_ITEM
+      ["i", "ro", "ha", "ni", "ho", "he", "to"].each do |str|
+        adapter.add str
+      end
+      spinner = Spinner.new(self)
+      spinner.adapter = adapter
+      @passed = false
+      spinner.on_item_selected_listener = Listener.new do |pos|
+        if @passed
+          adapter.add "selected '#{adapter[pos]}'"
+        else
+          @passed = true
+        end
+      end
+      @layout << spinner
+    end
   end
 end

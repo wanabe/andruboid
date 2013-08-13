@@ -14,7 +14,6 @@ import android.app.AlertDialog;
 import android.view.View;
 import android.widget.RadioGroup;
 import android.widget.AdapterView;
-import android.widget.AbsListView;
 import android.content.DialogInterface;
 
 public class Andruboid extends Activity{
@@ -109,13 +108,13 @@ public class Andruboid extends Activity{
 	  View.OnClickListener, 
 	  RadioGroup.OnCheckedChangeListener,
 	  AdapterView.OnItemClickListener,
-	  AbsListView.OnScrollListener {
+	  AdapterView.OnItemSelectedListener {
 		private static final int
 		  ON_CLICK = 0,
 		  ON_CHECKED_CHANGE = 1,
 		  ON_ITEM_CLICK = 2,
-		  ON_SCROLL = 3,
-		  ON_SCROLL_STATE_CHANGE = 4;
+		  ON_ITEM_SELECTED = 3,
+		  ON_NOTHING_SELECTED = 4;
 		Andruboid self;
 		int id;
 
@@ -138,12 +137,12 @@ public class Andruboid extends Activity{
 			self.handleEvent(ON_ITEM_CLICK, id, position);
 		}
 		@Override
-		public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-			self.handleEvent(ON_SCROLL, id, firstVisibleItem);
+		public void onItemSelected(AdapterView<?> parent, View view, int position, long itemId) {
+			self.handleEvent(ON_ITEM_SELECTED, id, position);
 		}
 		@Override
-		public void onScrollStateChanged(AbsListView view, int scrollState) {
-			self.handleEvent(ON_SCROLL_STATE_CHANGE, id, scrollState);
+		public void onNothingSelected(AdapterView<?> parent) {
+			self.handleEvent(ON_NOTHING_SELECTED, id, 0);
 		}
 	}
 }
