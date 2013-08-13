@@ -8,6 +8,11 @@ module Jmi
           attach_const Int, "simple_spinner_dropdown_item"
         end
       end
+      module Util
+        class Log < Java::Lang::Object
+          attach_static Int, "v", Java::Lang::String, Java::Lang::String
+        end
+      end
       module Content
         class Context < Java::Lang::Object
         end
@@ -204,3 +209,10 @@ module Jmi
   end
 end
 
+module Kernel
+  def p(*objs)
+    objs.each do |obj|
+      Jmi::J::Android::Util::Log.v("print", obj.inspect)
+    end
+  end
+end

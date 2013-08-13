@@ -124,6 +124,16 @@ static mrb_value jmeth_i__call_int(mrb_state *mrb, mrb_value mobj, struct RJMeth
   return mrb_fixnum_value(ji);
 }
 
+static mrb_value jmeth_i__call_int_static(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jint ji;
+  jclass jclazz;
+
+  jclazz = (jclass)DATA_PTR(mrb_iv_get(mrb, mobj, mrb_intern_cstr(mrb, "jclass")));
+  ji = (*env)->CallStaticIntMethodA(env, jclazz, rmeth->id, rmeth->argv);
+  return mrb_fixnum_value(ji);
+}
+
 static mrb_value jmeth_i__call_long(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jlong jl;
@@ -334,6 +344,9 @@ static inline caller_t type2caller(const char *ctype, int is_static, int depth) 
     } break;
     case 'I': {
       return jmeth_i__call_int;
+    } break;
+    case 'I' | FLAG_STATIC: {
+      return jmeth_i__call_int_static;
     } break;
     case 'J': {
       return jmeth_i__call_long;
