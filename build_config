@@ -1,4 +1,4 @@
 MRuby::CrossBuild.new('androideabi') do |conf|
   toolchain :androideabi
+  conf.gembox 'default'
 end
-

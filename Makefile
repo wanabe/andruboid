@@ -23,8 +23,8 @@ $(MRUBY_A_FULL): mruby mruby_config.rb
 mruby:
 	git clone $(MRUBY_URL) mruby
 
-mruby_config.rb:
-	cat mruby/build_config.rb build_config > mruby_config.rb
+mruby_config.rb: mruby/build_config.rb build_config
+	cat $^ > mruby_config.rb
 
 jni/mruby-all.h: make_header.rb mruby
 	ruby $<
