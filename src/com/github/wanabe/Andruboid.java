@@ -22,22 +22,16 @@ public class Andruboid extends Activity{
 	String at;
 
 	protected void showError(Throwable e) {
-		String msg = e.getMessage();
-		if (msg.equals("SystemExit: SystemExit")) {
-			close(mrb);
-			finish();
-		} else {
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			builder.setTitle(e.getClass().getSimpleName() + " at " + at).setMessage(msg);
-			builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					close(mrb);
-					finish();
-				}
-			});
-			builder.show();
-		}
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle(e.getClass().getSimpleName() + " at " + at).setMessage(msg);
+		builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				close(mrb);
+				finish();
+			}
+		});
+		builder.show();
 	}
 
 	@Override
@@ -74,6 +68,16 @@ public class Andruboid extends Activity{
 		return loadAsset(dir, name, "\\A").next();
 	}
 
+	String assetPath(File dir, String name) throws IOException {
+		File file = new File(dir, name);
+		if (!file.exists()) {
+			BufferedWriter out = new BufferedWriter(new FileWriter(file));
+			out.write(loadAsset(null, name));
+			out.close();
+		}
+		return file.getAbsolutePath();
+	}
+
 	void loadScripts(String dirName) throws IOException {
 		File dir = new File(Environment.getExternalStorageDirectory(), dirName);
 		if (!dir.exists()) {
@@ -84,7 +88,7 @@ public class Andruboid extends Activity{
 		while(recipe.hasNext()) {
 			at = recipe.next();
 			if (at.contains(".rb") && at.charAt(0) != '#') {
-				evalScript(mrb, loadAsset(dir, at));
+				evalScript(mrb, assetPath(dir, at));
 			}
 		}
 	}

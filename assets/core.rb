@@ -10,7 +10,7 @@ module Jmi
             def attach(ret, name, *args)
               classclass = self
               names = super
-              names = [name] if names.is_a? Proc
+              names = [name] if names.is_a?(Proc) || names.is_a?(Symbol)
               names.each do |name|
                 Jmi::Object.singleton_class.define_method(safe_name(name, Jmi::Object.singleton_class)) do |*argv|
                   @jclassobj.send(name, *argv)

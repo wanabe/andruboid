@@ -1,6 +1,12 @@
 module Jmi
   module J
     module Android
+      module Os
+        class Process < Java::Lang::Object
+          attach_static Void, "killProcess", Int
+          attach_static Int, "myPid"
+        end
+      end
       class R
         class Layout < Java::Lang::Object.force_path("android/R$layout")
           attach_const Int, "simple_list_item_1"
@@ -191,6 +197,7 @@ module Jmi
         class Activity < Content::Context
           attach Void, "setContentView", Android::View::View
           attach Android::Content::Pm::PackageManager, "getPackageManager"
+          attach Void, "finish"
         end
       end
     end
@@ -233,7 +240,8 @@ module Jmi
       Jmi::Main.main = self
     end
     def exit
-      raise SystemExit
+      finish
+      Android::Os::Process.kill_process Android::Os::Process.my_pid
     end
     class << self
       attr_accessor :main

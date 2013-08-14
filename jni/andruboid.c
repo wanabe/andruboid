@@ -108,6 +108,15 @@ static mrb_value jmeth_i__call_void(mrb_state *mrb, mrb_value mobj, struct RJMet
   return mobj;
 }
 
+static mrb_value jmeth_i__call_void_static(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jclass jclazz;
+
+  jclazz = (jclass)DATA_PTR(mrb_iv_get(mrb, mobj, mrb_intern_cstr(mrb, "jclass")));
+  (*env)->CallStaticVoidMethodA(env, jclazz, rmeth->id, rmeth->argv);
+  return mobj;
+}
+
 static mrb_value jmeth_i__call_bool(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jboolean jb;
@@ -338,6 +347,9 @@ static inline caller_t type2caller(const char *ctype, int is_static, int depth) 
   switch (CALLER_TYPE(ctype[0], is_static, depth)) {
     case 'V': {
       return jmeth_i__call_void;
+    } break;
+    case 'V' | FLAG_STATIC: {
+      return jmeth_i__call_void_static;
     } break;
     case 'Z': {
       return jmeth_i__call_bool;
@@ -674,9 +686,16 @@ jint Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz) {
 
 void Java_com_github_wanabe_Andruboid_evalScript(JNIEnv* env, jobject thiz, jint jmrb, jstring scr) {
   mrb_state *mrb = (mrb_state *)jmrb;
+  const char *path;
+  FILE *fp;
   int ai = mrb_gc_arena_save(mrb);
+  mrbc_context *cxt = mrbc_context_new(mrb);
 
-  mrb_load_string(mrb, (*env)->GetStringUTFChars(env, scr, NULL));
+  path = (*env)->GetStringUTFChars(env, scr, NULL);
+  mrbc_filename(mrb, cxt, path);
+  fp = fopen(path, "r");
+  mrb_load_file_cxt(mrb, fp, cxt);
+  mrbc_context_free(mrb, cxt);
   mrb_gc_arena_restore(mrb, ai);
   check_exc(mrb);
 }
