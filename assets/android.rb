@@ -7,14 +7,37 @@ module Jmi
           attach_const Int, "simple_spinner_item"
           attach_const Int, "simple_spinner_dropdown_item"
         end
+        class Style < Java::Lang::Object.force_path("android/R$style")
+          attach_const Int, "Widget_ProgressBar_Horizontal"
+        end
+        class Drawable < Java::Lang::Object.force_path("android/R$drawable")
+          attach_const Int, "progress_horizontal"
+        end
       end
       module Util
         class Log < Java::Lang::Object
           attach_static Int, "v", Java::Lang::String, Java::Lang::String
         end
+        class AttributeSet < Java::Lang::Object
+        end
+      end
+      module Graphics
+        class Typeface < Java::Lang::Object
+          attach_const self, "MONOSPACE"
+        end
+        module Drawable
+          class Drawable < Java::Lang::Object
+          end
+        end
       end
       module Content
         class Context < Java::Lang::Object
+        end
+        module Res
+          class Resources < Java::Lang::Object
+            attach_static self, "getSystem"
+            attach Android::Graphics::Drawable::Drawable, "getDrawable", Int
+          end
         end
         module Pm
           class PackageManager < Java::Lang::Object
@@ -26,11 +49,6 @@ module Jmi
           class PackageManager < Java::Lang::Object
             attach Java::Util::List[ApplicationInfo], "getInstalledApplications", Int
           end
-        end
-      end
-      module Graphics
-        class Typeface < Java::Lang::Object
-          attach_const self, "MONOSPACE"
         end
       end
       module View
@@ -63,6 +81,7 @@ module Jmi
             attach Java::Lang::String, "debug", Java::Lang::String
           end
           attach_const Int, "VERTICAL"
+          attach_const Int, "HORIZONTAL"
           attach_init Android::Content::Context
           attach Void, "setOrientation", Int
         end
@@ -149,6 +168,23 @@ module Jmi
           attach_init Android::Content::Context
           attach Void, "setAdapter", SpinnerAdapter
           attach Void, "setOnItemSelectedListener", AdapterView::OnItemSelectedListener
+        end
+        class RatingBar < Android::View::View
+          attach_init Android::Content::Context
+          attach Void, "setNumStars", Int
+          attach Void, "setRating", Float
+        end
+        class SeekBar < Android::View::View
+          attach_init Android::Content::Context
+          attach Void, "setMax", Int
+          attach Void, "setProgress", Int
+        end
+        class ProgressBar < Android::View::View
+          attach_init Android::Content::Context
+          attach_init Android::Content::Context, Android::Util::AttributeSet, Int
+          attach Void, "setMax", Int
+          attach Void, "setProgress", Int
+          attach Void, "setProgressDrawable", Android::Graphics::Drawable::Drawable
         end
       end
       module App

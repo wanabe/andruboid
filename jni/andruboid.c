@@ -495,6 +495,10 @@ static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
       case TYPE_VAL('s', MRB_TT_STRING): {
         jarg->l = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &item));
       } break;
+      case TYPE_VAL('L', MRB_TT_FALSE): {
+        types = strchr(types, ';');
+        jarg->l = (jobject)NULL;
+      } break;
       case TYPE_VAL('L', MRB_TT_DATA): {
         char *cname = types + 1;
         mrb_value mclass;
@@ -709,5 +713,10 @@ void Java_com_github_wanabe_Andruboid_handle(JNIEnv* env, jobject thiz, jint jmr
   mrb_funcall(mrb, mclass, "call", 3, mrb_fixnum_value(jtype), mrb_fixnum_value(jid), mrb_fixnum_value(jopt));
   mrb_gc_arena_restore(mrb, ai);
   check_exc(mrb);
+}
+
+void Java_com_github_wanabe_Andruboid_close(JNIEnv* env, jobject thiz, jint jmrb) {
+  mrb_state *mrb = (mrb_state *)jmrb;
+  mrb_close(mrb);
 }
 

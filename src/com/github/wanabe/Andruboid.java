@@ -24,6 +24,7 @@ public class Andruboid extends Activity{
 	protected void showError(Throwable e) {
 		String msg = e.getMessage();
 		if (msg.equals("SystemExit: SystemExit")) {
+			close(mrb);
 			finish();
 		} else {
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -31,6 +32,7 @@ public class Andruboid extends Activity{
 			builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
+					close(mrb);
 					finish();
 				}
 			});
@@ -100,6 +102,7 @@ public class Andruboid extends Activity{
 	public native void evalScript(int mrb, String scr);
 	public native void run(int mrb);
 	public native void handle(int mrb, int type, int id, int opt);
+	public native void close(int mrb);
 
 	static {
 		System.loadLibrary("andruboid");

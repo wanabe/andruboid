@@ -27,6 +27,7 @@ module Jmi
       listview = ListView.new(self)
       listview.adapter = adapter
       listview.on_item_click_listener = Listener.new do |pos|
+        @layout.orientation = LinearLayout::VERTICAL
         param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 40)
         @layout.layout_params = param
         @layout.remove_all_views
@@ -114,6 +115,35 @@ module Jmi
         end
       end
       @layout << spinner
+    end
+    def rating_bar
+      @layout.orientation = LinearLayout::HORIZONTAL
+      ratingbar = RatingBar.new(self)
+      ratingbar.num_stars = 3
+      ratingbar.rating = 2
+      @layout << ratingbar
+    end
+    def seek_bar
+      seekbar = SeekBar.new(self)
+      seekbar.max = 100
+      seekbar.progress = 30
+      param = ViewGroup::LayoutParams.new(ViewGroup::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::WRAP_CONTENT)
+      seekbar.layout_params = param
+      @layout << seekbar
+    end
+    def progress_bar
+      progressbar = ProgressBar.new(self, nil, Android::R::Style::WIDGET_PROGRESSBAR_HORIZONTAL)
+      progressbar.progress_drawable = Android::Content::Res::Resources.system.get_drawable Android::R::Drawable::PROGRESS_HORIZONTAL
+      progressbar.max = 100
+      progressbar.progress = 30
+      param = ViewGroup::LayoutParams.new(ViewGroup::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::WRAP_CONTENT)
+      progressbar.layout_params = param
+      @layout << progressbar
+
+      progressbar = ProgressBar.new(self)
+      progressbar.max = 100
+      progressbar.progress = 30
+      @layout << progressbar
     end
   end
 end
