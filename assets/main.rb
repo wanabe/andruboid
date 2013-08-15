@@ -26,10 +26,16 @@ module Jmi
       end
       listview = ListView.new(self)
       listview.adapter = adapter
+      listview.on_scroll_listener = Listener.new(Listener::ON_SCROLL_STATE_CHANGED) do |state|
+        if state != 0
+          param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 100)
+          listview.layout_params = param
+        end
+      end
       listview.on_item_click_listener = Listener.new do |pos|
         @layout.orientation = LinearLayout::VERTICAL
-        param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 40)
-        @layout.layout_params = param
+        param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 250)
+        listview.layout_params = param
         @layout.remove_all_views
         __send__ @table[pos]
       end

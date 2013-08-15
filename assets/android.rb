@@ -209,21 +209,39 @@ module Jmi
               include Android::View::View::OnClickListener
               include Android::Widget::AdapterView::OnItemClickListener
               include Android::Widget::AdapterView::OnItemSelectedListener
+              include Android::Widget::AbsListView::OnScrollListener
               @table = []
+              attach_const Int, "ON_CLICK"
+              attach_const Int, "ON_CHECKED_CHANGE"
+              attach_const Int, "ON_ITEM_CLICK"
+              attach_const Int, "ON_ITEM_SELECTED"
+              attach_const Int, "ON_NOTHING_SELECTED"
+              attach_const Int, "ON_SCROLL"
+              attach_const Int, "ON_SCROLL_STATE_CHANGED"
+
               attach_init Com::Github::Wanabe::Andruboid, Int
-              def initialize(arg = nil, &block)
-                block ||= arg
-                id = self.class.push block
+              def initialize(*types, &block)
+                @types = types
+                @block = block
+                id = self.class.push self
                 super Jmi::Main.main, id
               end
+              def call(type, opt)
+                return unless @types.empty? || @types.include?(type)
+                if @types.size > 1
+                  @block.call type, opt
+                else
+                  @block.call opt
+                end
+              end
               class << self
-                def push(block)
+                def push(listener)
                   id = @table.size
-                  @table.push block
+                  @table.push listener
                   id
                 end
                 def call(type, id, opt)
-                  @table[id].call(opt)
+                  @table[id].call(type, opt)
                 end
               end
             end

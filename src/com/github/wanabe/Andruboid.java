@@ -15,6 +15,7 @@ import android.app.AlertDialog;
 import android.view.View;
 import android.widget.RadioGroup;
 import android.widget.AdapterView;
+import android.widget.AbsListView;
 import android.content.DialogInterface;
 
 public class Andruboid extends Activity{
@@ -23,7 +24,7 @@ public class Andruboid extends Activity{
 
 	protected void showError(Throwable e) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setTitle(e.getClass().getSimpleName() + " at " + at).setMessage(msg);
+		builder.setTitle(e.getClass().getSimpleName() + " at " + at).setMessage(e.getMessage());
 		builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
@@ -116,13 +117,16 @@ public class Andruboid extends Activity{
 	  View.OnClickListener, 
 	  RadioGroup.OnCheckedChangeListener,
 	  AdapterView.OnItemClickListener,
-	  AdapterView.OnItemSelectedListener {
+	  AdapterView.OnItemSelectedListener,
+	  AbsListView.OnScrollListener {
 		private static final int
 		  ON_CLICK = 0,
 		  ON_CHECKED_CHANGE = 1,
 		  ON_ITEM_CLICK = 2,
 		  ON_ITEM_SELECTED = 3,
-		  ON_NOTHING_SELECTED = 4;
+		  ON_NOTHING_SELECTED = 4,
+		  ON_SCROLL = 5,
+		  ON_SCROLL_STATE_CHANGED = 6;
 		Andruboid self;
 		int id;
 
@@ -151,6 +155,14 @@ public class Andruboid extends Activity{
 		@Override
 		public void onNothingSelected(AdapterView<?> parent) {
 			self.handleEvent(ON_NOTHING_SELECTED, id, 0);
+		}
+		@Override
+		public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+			self.handleEvent(ON_SCROLL, id, firstVisibleItem);
+		}
+		@Override
+		public void onScrollStateChanged(AbsListView view, int scrollState) {
+			self.handleEvent(ON_SCROLL_STATE_CHANGED, id, scrollState);
 		}
 	}
 }
