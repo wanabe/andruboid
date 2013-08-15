@@ -659,9 +659,11 @@ static int check_exc(mrb_state *mrb) {
     mrb_value mstr;
     jclass jclazz;
     if ((*env)->ExceptionCheck(env)) {
+      mrb->exc = 0;
       return 1;
     }
     mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+    mrb->exc = 0;
     jclazz = (*env)->FindClass(env, "java/lang/RuntimeException");
     if (jclazz) {
       (*env)->ThrowNew(env, jclazz, mrb_string_value_cstr(mrb, &mstr));
@@ -684,19 +686,20 @@ jint Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz) {
   return (jint)mrb;
 }
 
-void Java_com_github_wanabe_Andruboid_evalScript(JNIEnv* env, jobject thiz, jint jmrb, jstring scr) {
+void Java_com_github_wanabe_Andruboid_evalScript(JNIEnv* env, jobject thiz, jint jmrb, jstring jname, jstring jscr) {
   mrb_state *mrb = (mrb_state *)jmrb;
-  const char *path;
-  FILE *fp;
+  const char *cname, *cscr;
   int ai = mrb_gc_arena_save(mrb);
   mrbc_context *cxt = mrbc_context_new(mrb);
 
-  path = (*env)->GetStringUTFChars(env, scr, NULL);
-  mrbc_filename(mrb, cxt, path);
-  fp = fopen(path, "r");
-  mrb_load_file_cxt(mrb, fp, cxt);
+  cscr = (*env)->GetStringUTFChars(env, jscr, NULL);
+  cname = (*env)->GetStringUTFChars(env, jname, NULL);
+  mrbc_filename(mrb, cxt, cname);
+  mrb_load_string_cxt(mrb, cscr, cxt);
   mrbc_context_free(mrb, cxt);
   mrb_gc_arena_restore(mrb, ai);
+  (*env)->ReleaseStringUTFChars(env, jname, cname);
+  (*env)->ReleaseStringUTFChars(env, jscr, cscr);
   check_exc(mrb);
 }
 

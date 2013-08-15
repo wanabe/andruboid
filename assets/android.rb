@@ -56,6 +56,14 @@ module Jmi
             attach Java::Util::List[ApplicationInfo], "getInstalledApplications", Int
           end
         end
+        class DialogInterface < Java::Lang::Object
+          module OnClickListener
+            extend Interface
+          end
+          attach_const Int, "BUTTON_NEGATIVE"
+          attach_const Int, "BUTTON_NEUTRAL"
+          attach_const Int, "BUTTON_POSITIVE"
+        end
       end
       module View
         class View < Java::Lang::Object
@@ -199,6 +207,32 @@ module Jmi
           attach Android::Content::Pm::PackageManager, "getPackageManager"
           attach Void, "finish"
         end
+        class Dialog < Java::Lang::Object
+          attach Void, "show"
+          attach Void, "setCancelable", Boolean
+        end
+        class AlertDialog < Dialog
+          class Builder < Java::Lang::Object
+            attach_init Content::Context
+            attach AlertDialog, "create"
+            attach self, "setTitle", Java::Lang::CharSequence
+            attach self, "setMessage", Java::Lang::CharSequence
+            attach self, "setPositiveButton", Java::Lang::CharSequence, Content::DialogInterface::OnClickListener
+            attach self, "setNegativeButton", Java::Lang::CharSequence, Content::DialogInterface::OnClickListener
+            attach self, "setNeutralButton", Java::Lang::CharSequence, Content::DialogInterface::OnClickListener
+          end
+          attach Void, "setTitle", Java::Lang::CharSequence
+        end
+        class ProgressDialog < AlertDialog
+          attach_const Int, "STYLE_HORIZONTAL"
+          attach_init Content::Context
+          attach Void, "setMessage", Java::Lang::CharSequence
+          attach Void, "setIndeterminate", Boolean
+          attach Void, "setProgressStyle", Int
+          attach Void, "setMax", Int
+          attach Void, "incrementProgressBy", Int
+          attach Void, "incrementSecondaryProgressBy", Int
+        end
       end
     end
     module Com
@@ -210,6 +244,8 @@ module Jmi
               include Android::Widget::AdapterView::OnItemClickListener
               include Android::Widget::AdapterView::OnItemSelectedListener
               include Android::Widget::AbsListView::OnScrollListener
+              include Android::Content::DialogInterface::OnClickListener
+
               @table = []
               attach_const Int, "ON_CLICK"
               attach_const Int, "ON_CHECKED_CHANGE"

@@ -69,16 +69,6 @@ public class Andruboid extends Activity{
 		return loadAsset(dir, name, "\\A").next();
 	}
 
-	String assetPath(File dir, String name) throws IOException {
-		File file = new File(dir, name);
-		if (!file.exists()) {
-			BufferedWriter out = new BufferedWriter(new FileWriter(file));
-			out.write(loadAsset(null, name));
-			out.close();
-		}
-		return file.getAbsolutePath();
-	}
-
 	void loadScripts(String dirName) throws IOException {
 		File dir = new File(Environment.getExternalStorageDirectory(), dirName);
 		if (!dir.exists()) {
@@ -89,7 +79,7 @@ public class Andruboid extends Activity{
 		while(recipe.hasNext()) {
 			at = recipe.next();
 			if (at.contains(".rb") && at.charAt(0) != '#') {
-				evalScript(mrb, assetPath(dir, at));
+				evalScript(mrb, at, loadAsset(dir, at));
 			}
 		}
 	}
@@ -104,7 +94,7 @@ public class Andruboid extends Activity{
 	}
 
 	public native int initialize();
-	public native void evalScript(int mrb, String scr);
+	public native void evalScript(int mrb, String name, String scr);
 	public native void run(int mrb);
 	public native void handle(int mrb, int type, int id, int opt);
 	public native void close(int mrb);
@@ -118,7 +108,8 @@ public class Andruboid extends Activity{
 	  RadioGroup.OnCheckedChangeListener,
 	  AdapterView.OnItemClickListener,
 	  AdapterView.OnItemSelectedListener,
-	  AbsListView.OnScrollListener {
+	  AbsListView.OnScrollListener,
+	  DialogInterface.OnClickListener {
 		private static final int
 		  ON_CLICK = 0,
 		  ON_CHECKED_CHANGE = 1,
@@ -163,6 +154,10 @@ public class Andruboid extends Activity{
 		@Override
 		public void onScrollStateChanged(AbsListView view, int scrollState) {
 			self.handleEvent(ON_SCROLL_STATE_CHANGED, id, scrollState);
+		}
+		@Override
+		public void onClick(DialogInterface dialog, int which) {
+			self.handleEvent(ON_CLICK, id, which);
 		}
 	}
 }

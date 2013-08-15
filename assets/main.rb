@@ -1,7 +1,9 @@
 module Jmi
   class Andruboid < Main
+    include Android::App
     include Android::View
     include Android::Widget
+    include Android::Content
     include Android::Graphics
     def initialize
       super
@@ -150,6 +152,40 @@ module Jmi
       progressbar.max = 100
       progressbar.progress = 30
       @layout << progressbar
+    end
+    def progress_dialog
+      dialog = ProgressDialog.new self
+      dialog.title = "ProgressDialog"
+      dialog.message = "this dialog shows progress"
+      dialog.indeterminate = false
+      dialog.progress_style = ProgressDialog::STYLE_HORIZONTAL
+      dialog.max = 100
+      dialog.increment_progress_by 30
+      dialog.increment_secondary_progress_by 70
+      dialog.cancelable = true
+      dialog.show
+    end
+    def alert_dialog
+      builder = AlertDialog::Builder.new self
+      builder.title = "AlertDialog"
+      builder.message = "this is dialog message"
+      listener = Listener.new do |which|
+        ans = case which
+        when DialogInterface::BUTTON_POSITIVE
+          "yes"
+        when DialogInterface::BUTTON_NEGATIVE
+          "no"
+        when DialogInterface::BUTTON_NEUTRAL
+          "skip"
+        end
+        Toast.make_text(self, "you said '#{ans}'", Toast::LENGTH_SHORT).show
+      end
+      builder.set_positive_button "Yes", listener
+      builder.set_negative_button "No", listener
+      builder.set_neutral_button "Skip", listener
+
+      dialog = builder.create
+      dialog.show
     end
   end
 end
