@@ -726,13 +726,35 @@ void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) 
   check_exc(mrb);
 }
 
-void Java_com_github_wanabe_Andruboid_handle(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid, jint jopt) {
+void Java_com_github_wanabe_Andruboid_handle__IIII(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid, jint jopt) {
   mrb_state *mrb = (mrb_state *)jmrb;
   int ai = mrb_gc_arena_save(mrb);
   struct RClass *mod = mrb_class_get(mrb, "Jmi");
   mrb_value mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Listener"));
 
   mrb_funcall(mrb, mclass, "call", 3, mrb_fixnum_value(jtype), mrb_fixnum_value(jid), mrb_fixnum_value(jopt));
+  mrb_gc_arena_restore(mrb, ai);
+  check_exc(mrb);
+}
+
+void Java_com_github_wanabe_Andruboid_handle__III_3I(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid, jintArray jopt) {
+  mrb_state *mrb = (mrb_state *)jmrb;
+  int ai = mrb_gc_arena_save(mrb);
+  struct RClass *mod = mrb_class_get(mrb, "Jmi");
+  mrb_value mary, mitem, mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Listener"));
+  int i;
+  jint *jints, size;
+
+  size = (*env)->GetArrayLength(env, jopt);
+  mary = mrb_ary_new_capa(mrb, size);
+  jints = (*env)->GetIntArrayElements(env, jopt, NULL);
+  for (i = 0; i < size; i++) {
+    mitem = mrb_fixnum_value(jints[i]);
+    mrb_ary_push(mrb, mary, mitem);
+  }
+  (*env)->ReleaseIntArrayElements(env, jopt, jints, 0);
+
+  mrb_funcall(mrb, mclass, "call", 3, mrb_fixnum_value(jtype), mrb_fixnum_value(jid), mary);
   mrb_gc_arena_restore(mrb, ai);
   check_exc(mrb);
 }

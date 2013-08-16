@@ -233,6 +233,18 @@ module Jmi
           attach Void, "incrementProgressBy", Int
           attach Void, "incrementSecondaryProgressBy", Int
         end
+        class DatePickerDialog < AlertDialog
+          module OnDateSetListener
+            extend Interface
+          end
+          attach_init Content::Context, OnDateSetListener, Int, Int, Int
+        end
+        class TimePickerDialog < AlertDialog
+          module OnTimeSetListener
+            extend Interface
+          end
+          attach_init Content::Context, OnTimeSetListener, Int, Int, Boolean
+        end
       end
     end
     module Com
@@ -240,6 +252,8 @@ module Jmi
         module Wanabe
           class Andruboid < Android::App::Activity
             class Listener < Jmi::Object
+              include Android::App::DatePickerDialog::OnDateSetListener
+              include Android::App::TimePickerDialog::OnTimeSetListener
               include Android::View::View::OnClickListener
               include Android::Widget::AdapterView::OnItemClickListener
               include Android::Widget::AdapterView::OnItemSelectedListener
@@ -264,11 +278,9 @@ module Jmi
               end
               def call(type, opt)
                 return unless @types.empty? || @types.include?(type)
-                if @types.size > 1
-                  @block.call type, opt
-                else
-                  @block.call opt
-                end
+                args = opt.is_a?(Array) ? opt : [opt]
+                args.unshift type if @types.size > 1
+                @block.call *args
               end
               class << self
                 def push(listener)

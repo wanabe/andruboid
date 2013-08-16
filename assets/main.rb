@@ -1,5 +1,6 @@
 module Jmi
   class Andruboid < Main
+    include Java::Util
     include Android::App
     include Android::View
     include Android::Widget
@@ -185,6 +186,27 @@ module Jmi
       builder.set_neutral_button "Skip", listener
 
       dialog = builder.create
+      dialog.show
+    end
+    def calendar_picker_dialog
+      calendar = Calendar.instance
+      year = calendar.get(Calendar::YEAR)
+      month = calendar.get(Calendar::MONTH)
+      day = calendar.get(Calendar::DAY_OF_MONTH)
+      listener = Listener.new do |y, m, d|
+        Toast.make_text(self, "#{y}/#{m + 1}/#{d}", Toast::LENGTH_SHORT).show
+      end
+      dialog = DatePickerDialog.new(self, listener, year, month, day)
+      dialog.show
+    end
+    def time_picker_dialog
+      calendar = Calendar.instance
+      hour = calendar[Calendar::HOUR_OF_DAY]
+      minute = calendar[Calendar::MINUTE]
+      listener = Listener.new do |h, m|
+        Toast.make_text(self, "#{h}:#{m}", Toast::LENGTH_SHORT).show
+      end
+      dialog = TimePickerDialog.new(self, listener, hour, minute, true)
       dialog.show
     end
   end

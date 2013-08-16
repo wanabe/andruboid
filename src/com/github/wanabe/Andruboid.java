@@ -12,10 +12,14 @@ import android.os.Environment;
 import android.os.Process;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.view.View;
 import android.widget.RadioGroup;
 import android.widget.AdapterView;
 import android.widget.AbsListView;
+import android.widget.DatePicker;
+import android.widget.TimePicker;
 import android.content.DialogInterface;
 
 public class Andruboid extends Activity{
@@ -93,10 +97,20 @@ public class Andruboid extends Activity{
 		}
 	}
 
+	void handleEvent(int type, int id, int[] opt) {
+		try {
+			handle(mrb, type, id, opt);
+		} catch(Throwable e) {
+			at = "handle " + Integer.toString(type);
+			showError(e);
+		}
+	}
+
 	public native int initialize();
 	public native void evalScript(int mrb, String name, String scr);
 	public native void run(int mrb);
 	public native void handle(int mrb, int type, int id, int opt);
+	public native void handle(int mrb, int type, int id, int[] opt);
 	public native void close(int mrb);
 
 	static {
@@ -109,7 +123,9 @@ public class Andruboid extends Activity{
 	  AdapterView.OnItemClickListener,
 	  AdapterView.OnItemSelectedListener,
 	  AbsListView.OnScrollListener,
-	  DialogInterface.OnClickListener {
+	  DialogInterface.OnClickListener,
+	  DatePickerDialog.OnDateSetListener,
+	  TimePickerDialog.OnTimeSetListener {
 		private static final int
 		  ON_CLICK = 0,
 		  ON_CHECKED_CHANGE = 1,
@@ -117,7 +133,9 @@ public class Andruboid extends Activity{
 		  ON_ITEM_SELECTED = 3,
 		  ON_NOTHING_SELECTED = 4,
 		  ON_SCROLL = 5,
-		  ON_SCROLL_STATE_CHANGED = 6;
+		  ON_SCROLL_STATE_CHANGED = 6,
+		  ON_DATE_SET = 7,
+		  ON_TIME_SET = 8;
 		Andruboid self;
 		int id;
 
@@ -158,6 +176,16 @@ public class Andruboid extends Activity{
 		@Override
 		public void onClick(DialogInterface dialog, int which) {
 			self.handleEvent(ON_CLICK, id, which);
+		}
+		@Override
+		public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
+			int[] ary = {year, monthOfYear, dayOfMonth};
+			self.handleEvent(ON_DATE_SET, id, ary);
+		}
+		@Override
+		public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+			int[] ary = {hourOfDay, minute};
+			self.handleEvent(ON_TIME_SET, id, ary);
 		}
 	}
 }

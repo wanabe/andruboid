@@ -40,7 +40,7 @@ module Jmi
             rname = camel2snake(name)
             names = []
             if rname != jname
-              case 
+              case
               when argc == 1 && rname.index("set_") == 0
                 var_name = rname[4..-1]
                 names.push "#{var_name}="
@@ -64,13 +64,15 @@ module Jmi
                 end
               else
                 names.push rname
-                case
-                when argc == 0 && rname.index("get_") == 0
-                  names.push rname[4..-1]
-                when argc == 0 && rname == "to_string"
-                  names.push "to_s"
-                end
               end
+            end
+            case
+            when argc == 0 && rname.index("get_") == 0
+              names.push rname[4..-1]
+            when argc == 0 && rname == "to_string"
+              names.push "to_s"
+            when argc > 0 && rname == "get"
+              names.push "[]"
             end
 
             names.map! do |alias_name|
