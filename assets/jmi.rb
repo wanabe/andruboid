@@ -107,7 +107,8 @@ module Jmi
           ret
         else
           recv = self.is_a?(::Class) ? "#{self}." : "#{self.class}#"
-          raise "mismatching #{recv}#{name}(#{args.map{|a|a.inspect}.join(', ')})"
+          types = methods.map {|m| m.types}.join('", "')
+          raise "mismatching #{recv}#{name}(#{args.map{|a|a.inspect}.join(', ')}) with \"#{types}\""
         end
       end
     end

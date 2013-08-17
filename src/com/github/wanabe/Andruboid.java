@@ -21,6 +21,9 @@ import android.widget.AbsListView;
 import android.widget.DatePicker;
 import android.widget.TimePicker;
 import android.content.DialogInterface;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Color;
 
 public class Andruboid extends Activity{
 	int mrb;
@@ -106,11 +109,21 @@ public class Andruboid extends Activity{
 		}
 	}
 
+	void handleEvent(int type, int id, Object opt, Class opt2) {
+		try {
+			handle(mrb, type, id, opt, opt2);
+		} catch(Throwable e) {
+			at = "handle " + Integer.toString(type);
+			showError(e);
+		}
+	}
+
 	public native int initialize();
 	public native void evalScript(int mrb, String name, String scr);
 	public native void run(int mrb);
 	public native void handle(int mrb, int type, int id, int opt);
 	public native void handle(int mrb, int type, int id, int[] opt);
+	public native void handle(int mrb, int type, int id, Object opt, Class opt2);
 	public native void close(int mrb);
 
 	static {
@@ -135,7 +148,8 @@ public class Andruboid extends Activity{
 		  ON_SCROLL = 5,
 		  ON_SCROLL_STATE_CHANGED = 6,
 		  ON_DATE_SET = 7,
-		  ON_TIME_SET = 8;
+		  ON_TIME_SET = 8,
+		  ON_DRAW = 9;
 		Andruboid self;
 		int id;
 
@@ -186,6 +200,28 @@ public class Andruboid extends Activity{
 		public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
 			int[] ary = {hourOfDay, minute};
 			self.handleEvent(ON_TIME_SET, id, ary);
+		}
+		public void onDraw(Canvas canvas) {
+			self.handleEvent(ON_DRAW, id, canvas, android.graphics.Canvas.class);
+		}
+	}
+
+	static class CustomView extends View {
+		public Listener listener;
+		public Andruboid self;
+		public CustomView(Andruboid self) {
+			super(self);
+			this.self = self;
+			listener = null;
+		}
+		public void setOnDraw(Listener listener) {
+			this.listener = listener;
+		}
+		@Override
+		protected void onDraw(Canvas canvas) {
+			if (listener != null) {
+				listener.onDraw(canvas);
+			}
 		}
 	}
 }

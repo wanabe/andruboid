@@ -209,5 +209,41 @@ module Jmi
       dialog = TimePickerDialog.new(self, listener, hour, minute, true)
       dialog.show
     end
+    def analog_clock
+      clock = AnalogClock.new self
+      @layout << clock
+    end
+    def digital_clock
+      clock = DigitalClock.new self
+      @layout << clock
+    end
+    def chronometer
+      chrono = Chronometer.new self
+      chrono.format = "click to start/stop chronometer %s"
+      chrono.start
+      @started = true
+      chrono.on_click_listener = Listener.new do
+        if @started
+          chrono.stop
+        else
+          chrono.start
+        end
+        @started = !@started
+      end
+      @layout << chrono
+    end
+    def custom_view
+      customview = CustomView.new self
+      customview.on_draw = Listener.new do |canvas|
+        paint = Paint.new
+        paint.color = Color.argb 255, 255, 255, 255
+        canvas.draw_line 0, 0, 100, 50, paint
+
+        canvas.draw_point 10, 20, paint
+        pts = [20, 30, 30, 40]
+        canvas.draw_points pts, paint
+      end
+      @layout << customview
+    end
   end
 end

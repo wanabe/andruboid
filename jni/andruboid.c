@@ -468,10 +468,100 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
+static mrb_value jmeth__types(mrb_state *mrb, mrb_value self) {
+  struct RJMethod *smeth = DATA_PTR(self);
+
+  return mrb_str_new_cstr(mrb, smeth->types);
+}
+
 #define TYPE_VAL(c, mtype) (((int)(unsigned char)c) | ((mtype) << 8))
 
-static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
+static char *mobj2jvalue(mrb_state *mrb, char *types, mrb_value mobj, jvalue *jval) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
+
+  switch (TYPE_VAL(*types++, mrb_type(mobj))) {
+    case TYPE_VAL('Z', MRB_TT_FALSE):
+    case TYPE_VAL('Z', MRB_TT_TRUE): {
+      jval->z = mrb_bool(mobj);
+    } break;
+    case TYPE_VAL('I', MRB_TT_FIXNUM): {
+      jval->i = mrb_fixnum(mobj);
+    } break;
+    case TYPE_VAL('F', MRB_TT_FLOAT): {
+      jval->f = mrb_float(mobj);
+    } break;
+    case TYPE_VAL('F', MRB_TT_FIXNUM): {
+        jval->f = mrb_fixnum(mobj);
+      } break;
+    case TYPE_VAL('s', MRB_TT_STRING): {
+      jval->l = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &mobj));
+    } break;
+    case TYPE_VAL('L', MRB_TT_FALSE): {
+      types = strchr(types, ';') + 1;
+      jval->l = (jobject)NULL;
+    } break;
+    case TYPE_VAL('L', MRB_TT_DATA): {
+      char *cname = types;
+      mrb_value mclass;
+
+      types = strchr(types, ';');
+      mclass = mrb_str_new(mrb, cname, (types++) - cname);
+      mclass = mrb_funcall(mrb, mobj, "name2class", 1, mclass);
+      if (mrb_nil_p(mclass)) {
+        return NULL;
+      }
+      if (!mrb_obj_is_kind_of(mrb, mobj, mrb_class_ptr(mclass))) {
+        return NULL;
+      }
+      jval->l = (jobject)DATA_PTR(mobj);
+    } break;
+    case TYPE_VAL('[', MRB_TT_ARRAY): {
+      struct RArray *ary;
+      int i, size, len;
+      jarray jary;
+      char *head, *ptr;
+
+      head = types;
+      ary = mrb_ary_ptr(mobj);
+      len = ary->len;
+      switch (*head) {
+        case 'F': {
+          jary = (*env)->NewFloatArray(env, len);
+          size = sizeof(jfloat);
+          ptr = (char*)(*env)->GetFloatArrayElements(env, jary, NULL);
+        } break;
+        default: {
+          return NULL;
+        }
+      }
+      for (i = 0; i < len; i++) {
+        mrb_value mitem = ary->ptr[i];
+        jvalue *jarg = (jvalue*)(ptr + i * size);
+
+        types = mobj2jvalue(mrb, head, mitem, jarg);
+        if (!types) {
+          return NULL;
+        }
+      }
+      switch (*head) {
+        case 'F': {
+          (*env)->ReleaseFloatArrayElements(env, jary, (jfloat*)ptr, 0);
+        } break;
+        default: {
+          return NULL;
+        }
+      }
+      jval->l = jary;
+    } break;
+    default: {
+      return NULL;
+    }
+  }
+
+  return types;
+}
+
+static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
   mrb_value margs;
   struct RJMethod *smeth = DATA_PTR(self);
   struct RArray *ary;
@@ -490,47 +580,10 @@ static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
     mrb_value item = ary->ptr[i];
     jvalue *jarg = smeth->argv + i;
 
-    switch (TYPE_VAL(*types, mrb_type(item))) {
-      case TYPE_VAL('Z', MRB_TT_FALSE):
-      case TYPE_VAL('Z', MRB_TT_TRUE): {
-        jarg->z = mrb_bool(item);
-      } break;
-      case TYPE_VAL('I', MRB_TT_FIXNUM): {
-        jarg->i = mrb_fixnum(item);
-      } break;
-      case TYPE_VAL('F', MRB_TT_FLOAT): {
-        jarg->f = mrb_float(item);
-      } break;
-      case TYPE_VAL('F', MRB_TT_FIXNUM): {
-        jarg->f = mrb_fixnum(item);
-      } break;
-      case TYPE_VAL('s', MRB_TT_STRING): {
-        jarg->l = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &item));
-      } break;
-      case TYPE_VAL('L', MRB_TT_FALSE): {
-        types = strchr(types, ';');
-        jarg->l = (jobject)NULL;
-      } break;
-      case TYPE_VAL('L', MRB_TT_DATA): {
-        char *cname = types + 1;
-        mrb_value mclass;
-
-        types = strchr(types, ';');
-        mclass = mrb_str_new(mrb, cname, types - cname);
-        mclass = mrb_funcall(mrb, item, "name2class", 1, mclass);
-        if (mrb_nil_p(mclass)) {
-          return mrb_false_value();
-        }
-        if (!mrb_obj_is_kind_of(mrb, item, mrb_class_ptr(mclass))) {
-          return mrb_false_value();
-        }
-        jarg->l = (jobject)DATA_PTR(item);
-      } break;
-      default: {
-        return mrb_false_value();
-      }
+    types = mobj2jvalue(mrb, types, item, jarg);
+    if (!types) {
+      return mrb_false_value();
     }
-    types++;
   }
   return mrb_true_value();
 }
@@ -642,6 +695,7 @@ static struct RClass *init_jmi(mrb_state *mrb) {
     "Method", mrb->object_class);
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
   mrb_define_method(mrb, klass, "initialize", jmeth__initialize, ARGS_REQ(3));
+  mrb_define_method(mrb, klass, "types", jmeth__types, ARGS_REQ(0));
   mrb_define_method(mrb, klass, "setup", jmeth__setup, ARGS_REQ(1));
   mrb_define_method(mrb, klass, "call", jmeth__call, ARGS_REQ(1));
 
@@ -755,6 +809,20 @@ void Java_com_github_wanabe_Andruboid_handle__III_3I(JNIEnv* env, jobject thiz, 
   (*env)->ReleaseIntArrayElements(env, jopt, jints, 0);
 
   mrb_funcall(mrb, mclass, "call", 3, mrb_fixnum_value(jtype), mrb_fixnum_value(jid), mary);
+  mrb_gc_arena_restore(mrb, ai);
+  check_exc(mrb);
+}
+
+void Java_com_github_wanabe_Andruboid_handle__IIILjava_lang_Object_2Ljava_lang_Class_2(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid, jobject jopt, jobject jclassobj) {
+  mrb_state *mrb = (mrb_state *)jmrb;
+  int ai = mrb_gc_arena_save(mrb);
+  struct RClass *mod = mrb_class_get(mrb, "Jmi");
+  mrb_value mobj, mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Listener"));
+
+  mobj = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Object"));
+  mobj = jmeth_i__jclass2mclass(mrb, jclassobj, mobj);
+  mobj = wrap_jobject(mrb, mrb_class_ptr(mobj),  (*env)->NewLocalRef(env, jopt));
+  mrb_funcall(mrb, mclass, "call", 3, mrb_fixnum_value(jtype), mrb_fixnum_value(jid), mobj);
   mrb_gc_arena_restore(mrb, ai);
   check_exc(mrb);
 }

@@ -35,6 +35,18 @@ module Jmi
           class Drawable < Java::Lang::Object
           end
         end
+        class Paint < Java::Lang::Object
+          attach_init
+          attach Void, "setColor", Int
+        end
+        class Color < Java::Lang::Object
+          attach_static Int, "argb", Int, Int, Int, Int
+        end
+        class Canvas < Java::Lang::Object
+          attach Void, "drawLine", Float, Float, Float, Float, Paint
+          attach Void, "drawPoint", Float, Float, Paint
+          attach Void, "drawPoints", [Float], Paint
+        end
       end
       module Content
         class Context < Java::Lang::Object
@@ -85,6 +97,7 @@ module Jmi
         end
         class View
           attach Void, "setLayoutParams", ViewGroup::LayoutParams
+          attach Void, "setOnClickListener", OnClickListener
         end
       end
       module Widget
@@ -107,7 +120,6 @@ module Jmi
         end
         class Button < TextView
           attach_init Android::Content::Context
-          attach Void, "setOnClickListener", Android::View::View::OnClickListener
         end
         class Toast < Java::Lang::Object
           attach_const Int, "LENGTH_LONG"
@@ -199,6 +211,18 @@ module Jmi
           attach Void, "setMax", Int
           attach Void, "setProgress", Int
           attach Void, "setProgressDrawable", Android::Graphics::Drawable::Drawable
+        end
+        class AnalogClock < Android::View::View
+          attach_init Android::Content::Context
+        end
+        class DigitalClock < Android::View::View
+          attach_init Android::Content::Context
+        end
+        class Chronometer < Android::View::View
+          attach_init Android::Content::Context
+          attach Void, "start"
+          attach Void, "stop"
+          attach Void, "setFormat", Java::Lang::String
         end
       end
       module App
@@ -293,6 +317,10 @@ module Jmi
                 end
               end
             end
+            class CustomView < Android::View::View
+              attach_init Andruboid
+              attach Void, "setOnDraw", Listener
+            end
           end
         end
       end
@@ -301,6 +329,7 @@ module Jmi
 
   Main = J::Com::Github::Wanabe::Andruboid
   Listener = Main::Listener
+  CustomView = Main::CustomView
   class Main
     def initialize
       Jmi::Main.main = self
