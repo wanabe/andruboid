@@ -27,24 +27,24 @@ module Jmi
         name = name.to_s.split("_").map{|n| n.capitalize}.join("")
         adapter.add name
       end
-      listview = ListView.new(self)
-      listview.adapter = adapter
-      listview.on_scroll_listener = Listener.new(Listener::ON_SCROLL_STATE_CHANGED) do |state|
+      @listview = ListView.new(self)
+      @listview.adapter = adapter
+      @listview.on_scroll_listener = Listener.new(Listener::ON_SCROLL_STATE_CHANGED) do |state|
         if state != 0
-          param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 100)
-          listview.layout_params = param
+          param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 50)
+          @listview.layout_params = param
         end
       end
-      listview.on_item_click_listener = Listener.new do |pos|
+      @listview.on_item_click_listener = Listener.new do |pos|
         @layout.orientation = LinearLayout::VERTICAL
-        param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 250)
-        listview.layout_params = param
+        param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 100)
+        @listview.layout_params = param
         @layout.remove_all_views
         __send__ @table[pos]
       end
-      param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 100)
-      listview.layout_params = param
-      vlayout << listview
+      param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 50)
+      @listview.layout_params = param
+      vlayout << @listview
 
       @layout = LinearLayout.new(self)
       param = LinearLayout::LayoutParams.new(LinearLayout::LayoutParams::MATCH_PARENT, LinearLayout::LayoutParams::MATCH_PARENT, 100)
@@ -234,14 +234,77 @@ module Jmi
     end
     def custom_view
       customview = CustomView.new self
+      customview.set_layer_type(View::LAYER_TYPE_SOFTWARE, nil)
       customview.on_draw = Listener.new do |canvas|
         paint = Paint.new
-        paint.color = Color.argb 255, 255, 255, 255
-        canvas.draw_line 0, 0, 100, 50, paint
+        paint.anti_alias = true
+        paint.color = Color.argb 255, 164, 199, 57
+
+        canvas.draw_argb 255, 255, 255, 255
+
+        clip_path = Path.new
+        clip_path.add_circle 140, 80, 3, Path::Direction::CW
+        clip_path.add_circle 170, 80, 3, Path::Direction::CW
+        begin
+          canvas.clip_path clip_path, Region::Op::DIFFERENCE
+        rescue Exception => e
+          # draw white eyes after if clip_path is unsupportef
+          Jmi.clear_exception
+        else
+          clip_path = nil
+        end
+
+        path = Path.new
+        path.add_round_rect RectF.new(102, 95, 117, 145), 7, 7, Path::Direction::CW
+        path.add_round_rect RectF.new(193, 95, 208, 145), 7, 7, Path::Direction::CW
+        path.add_rect RectF.new(120, 98, 190, 145), Path::Direction::CW
+        path.add_round_rect RectF.new(120, 140, 190, 150), 5, 5, Path::Direction::CW
+        path.add_round_rect RectF.new(135, 140, 150, 175), 7, 7, Path::Direction::CW
+        path.add_round_rect RectF.new(160, 140, 175, 175), 7, 7, Path::Direction::CW
+        path.add_arc RectF.new(120, 63, 190, 127), 180, 180
+        path.move_to 140, 70
+        path.line_to 130, 55
+        path.line_to 131, 54
+        path.line_to 141, 69
+        path.move_to 170, 70
+        path.line_to 180, 55
+        path.line_to 182, 54
+        path.line_to 172, 69
+
+        canvas.draw_path path, paint
+        if clip_path
+          paint.color = Color.argb 255, 255, 255,255
+          canvas.draw_path clip_path, paint
+        end
+        paint.color = Color.argb 255, 0, 128, 192
 
         canvas.draw_point 10, 20, paint
         pts = [20, 30, 30, 40]
         canvas.draw_points pts, paint
+
+        canvas.draw_line 0, 0, 100, 50, paint
+        pts = [50, 0, 50, 30, 0, 50, 20, 50]
+        canvas.draw_lines pts, paint
+
+        rect = RectF.new 240.5, 20.5, 260.5, 40.5
+        canvas.draw_rect rect, paint
+
+        paint.style = Paint::Style::STROKE
+        canvas.draw_rect 210, 50, 230, 80, paint
+
+        paint.style = Paint::Style::FILL
+        canvas.draw_circle 220, 30, 10, paint
+
+        oval = RectF.new 240.5, 50.5, 260.5, 80.5
+        canvas.draw_oval oval, paint
+
+        paint.style = Paint::Style::STROKE
+        oval = RectF.new 280.0, 20.0, 320.0, 60.0
+        canvas.draw_arc oval, 90, 135, true, paint
+
+        paint.style = Paint::Style::FILL
+        oval = RectF.new 320.0, 20.0, 360.0, 60.0
+        canvas.draw_arc oval, 90, 135, false, paint
       end
       @layout << customview
     end

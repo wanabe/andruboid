@@ -679,6 +679,13 @@ static mrb_value jmi_s__debug(mrb_state *mrb, mrb_value self) {
   return mrb_nil_value();
 }
 
+static mrb_value jmi_s__clear_exception(mrb_state *mrb, mrb_value self) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+
+  (*env)->ExceptionClear(env);
+  return mrb_nil_value();
+}
+
 static struct RClass *init_jmi(mrb_state *mrb) {
   struct RClass *klass, *mod;
   mod = mrb_define_module(mrb, 
@@ -686,6 +693,7 @@ static struct RClass *init_jmi(mrb_state *mrb) {
   mrb_define_singleton_method(mrb, (struct RObject *)mod, "set_classpath", jmi_s__set_class_path, ARGS_REQ(2));
   mrb_define_singleton_method(mrb, (struct RObject *)mod, "get_field_static", jmi_s__get_field_static, ARGS_REQ(3));
   mrb_define_singleton_method(mrb, (struct RObject *)mod, "debug", jmi_s__debug, ARGS_NONE());
+  mrb_define_singleton_method(mrb, (struct RObject *)mod, "clear_exception", jmi_s__clear_exception, ARGS_NONE());
 
   klass = mrb_define_module_under(mrb, mod,
     "Definition");

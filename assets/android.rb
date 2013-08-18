@@ -1,6 +1,22 @@
 module Jmi
   module J
     module Android
+      module Util
+        class Log < Java::Lang::Object
+          attach_static Int, "v", Java::Lang::String, Java::Lang::String
+        end
+        class AttributeSet < Java::Lang::Object
+        end
+      end
+
+      module ::Kernel
+        def p(*objs)
+          objs.each do |obj|
+            Jmi::J::Android::Util::Log.v("print", obj.inspect)
+          end
+        end
+      end
+
       module Os
         class Process < Java::Lang::Object
           attach_static Void, "killProcess", Int
@@ -20,13 +36,6 @@ module Jmi
           attach_const Int, "progress_horizontal"
         end
       end
-      module Util
-        class Log < Java::Lang::Object
-          attach_static Int, "v", Java::Lang::String, Java::Lang::String
-        end
-        class AttributeSet < Java::Lang::Object
-        end
-      end
       module Graphics
         class Typeface < Java::Lang::Object
           attach_const self, "MONOSPACE"
@@ -35,17 +44,53 @@ module Jmi
           class Drawable < Java::Lang::Object
           end
         end
-        class Paint < Java::Lang::Object
-          attach_init
-          attach Void, "setColor", Int
-        end
         class Color < Java::Lang::Object
           attach_static Int, "argb", Int, Int, Int, Int
         end
+        class Paint < Java::Lang::Object
+          class Style < Java::Lang::Object
+            attach_const self, "FILL"
+            attach_const self, "STROKE"
+            attach_const self, "FILL_AND_STROKE"
+          end
+          attach_init
+          attach Void, "setColor", Int
+          attach Void, "setAntiAlias", Boolean
+          attach Void, "setStyle", Style
+        end
+        class Region < Java::Lang::Object
+          class Op < Java::Lang::Object
+            attach_const self, "DIFFERENCE"
+          end
+        end
+        class RectF < Java::Lang::Object
+          attach_init Float, Float, Float, Float
+        end
+        class Path < Java::Lang::Object
+          class Direction < Java::Lang::Object
+            attach_const self, "CW"
+          end
+          attach_init
+          attach Void, "addCircle", Float, Float, Float, Direction
+          attach Void, "addRoundRect", RectF, Float, Float, Direction
+          attach Void, "addRect", RectF, Direction
+          attach Void, "addArc", RectF, Float, Float
+          attach Void, "moveTo", Float, Float
+          attach Void, "lineTo", Float, Float
+        end
         class Canvas < Java::Lang::Object
-          attach Void, "drawLine", Float, Float, Float, Float, Paint
           attach Void, "drawPoint", Float, Float, Paint
           attach Void, "drawPoints", [Float], Paint
+          attach Void, "drawLine", Float, Float, Float, Float, Paint
+          attach Void, "drawLines", [Float], Paint
+          attach Void, "drawARGB", Int, Int, Int, Int
+          attach Boolean, "clipPath", Path, Region::Op
+          attach Void, "drawPath", Path, Paint
+          attach Void, "drawRect", RectF, Paint
+          attach Void, "drawRect", Float, Float, Float, Float, Paint
+          attach Void, "drawCircle", Float, Float, Float, Paint
+          attach Void, "drawOval", RectF, Paint
+          attach Void, "drawArc", RectF, Float, Float, Boolean, Paint
         end
       end
       module Content
@@ -96,8 +141,10 @@ module Jmi
           alias remove_all remove_all_views
         end
         class View
+          attach_const Int, "LAYER_TYPE_SOFTWARE"
           attach Void, "setLayoutParams", ViewGroup::LayoutParams
           attach Void, "setOnClickListener", OnClickListener
+          attach Void, "setLayerType", Int, Graphics::Paint
         end
       end
       module Widget
@@ -344,14 +391,6 @@ module Jmi
         super
         @main = main
       end
-    end
-  end
-end
-
-module Kernel
-  def p(*objs)
-    objs.each do |obj|
-      Jmi::J::Android::Util::Log.v("print", obj.inspect)
     end
   end
 end

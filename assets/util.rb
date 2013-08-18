@@ -29,7 +29,22 @@ module Jmi
             CAMEL2SNAKE_TABLE.each do |pat|
               str.gsub!(*pat)
             end
-            str
+            prev = nil
+            ary = str.split("_").map do |s|
+              if s.length == 1
+                if prev
+                  prev.concat s
+                  nil
+                else
+                  prev = s
+                end
+              else
+                prev = nil
+                s
+              end
+            end
+            ary.compact!
+            ary.join("_")
           end
           def attach_at(klass, ret, name, *args)
             super
