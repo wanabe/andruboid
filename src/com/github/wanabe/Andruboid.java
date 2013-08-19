@@ -21,13 +21,16 @@ import android.widget.AbsListView;
 import android.widget.DatePicker;
 import android.widget.TimePicker;
 import android.content.DialogInterface;
+import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Color;
 
 public class Andruboid extends Activity{
+	static final String DIR_NAME = "andruboid";
 	int mrb;
 	String at;
+	File asset_dir;
 
 	protected void showError(Throwable e) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -47,8 +50,9 @@ public class Andruboid extends Activity{
 		super.onCreate(state);
 		try {
 			at = "initialze";
-			mrb = initialize();
-			loadScripts("andruboid");
+			exportAssets(DIR_NAME);
+			mrb = initialize(asset_dir.getAbsolutePath());
+			loadScripts();
 			at = "run";
 			run(mrb);
 		} catch(Throwable e) {
@@ -56,39 +60,50 @@ public class Andruboid extends Activity{
 		}
 	}
 
-	Scanner loadAsset(File dir, String name, String pattern) throws IOException {
-		InputStream src;
-		if (dir == null) {
-			src = getAssets().open(name);
-		} else {
-			File file = new File(dir, name);
-			if (!file.exists()) {
-				BufferedWriter out = new BufferedWriter(new FileWriter(file));
-				out.write(loadAsset(null, name));
-				out.close();
-			}
-			src = new FileInputStream(file);
-		}
-		return new Scanner(src, "UTF-8").useDelimiter(pattern);
+	String stream2String(InputStream in) {
+		Scanner scanner = new Scanner(in, "UTF-8");
+		return scanner.useDelimiter("\\A").next();
 	}
 
-	String loadAsset(File dir, String name) throws IOException {
-		return loadAsset(dir, name, "\\A").next();
+	String exportAssets(String dirName) {
+		asset_dir = new File(Environment.getExternalStorageDirectory(), dirName);
+		if (!asset_dir.exists()) {
+			asset_dir.mkdir();
+		}
+
+		AssetManager assets = getAssets();
+		String name = null;
+		try {
+			String [] names = assets.list("");
+			String [] ignore = {"webkit", "sounds", "images"};
+			java.util.List<String> ignores = java.util.Arrays.asList(ignore);
+			int i;
+			for (i = 0; i < names.length; i++) {
+				name = names[i];
+				if (!ignores.contains(name)) {
+					File file = new File(asset_dir, name);
+					if (!file.exists()) {
+						BufferedWriter out = new BufferedWriter(new FileWriter(file));
+						out.write(stream2String(assets.open(name)));
+						out.close();
+					}
+				}
+			}
+		} catch(IOException e) {
+			showError(e);
+		}
+		return asset_dir.getAbsolutePath();
 	}
 
-	void loadScripts(String dirName) throws IOException {
-		File dir = new File(Environment.getExternalStorageDirectory(), dirName);
-		if (!dir.exists()) {
-			dir.mkdir();
-		}
+	String loadAsset(String name) throws IOException {
+		File file = new File(asset_dir, name);
+		InputStream src = new FileInputStream(file);
+		return stream2String(src);
+	}
 
-		Scanner recipe = loadAsset(dir, "recipe", "\n");
-		while(recipe.hasNext()) {
-			at = recipe.next();
-			if (at.contains(".rb") && at.charAt(0) != '#') {
-				evalScript(mrb, at, loadAsset(dir, at));
-			}
-		}
+	void loadScripts() throws IOException {
+		at = "setup.rb";
+		evalScript(mrb, at, loadAsset(at));
 	}
 
 	void handleEvent(int type, int id, int opt) {
@@ -118,7 +133,7 @@ public class Andruboid extends Activity{
 		}
 	}
 
-	public native int initialize();
+	public native int initialize(String dirName);
 	public native void evalScript(int mrb, String name, String scr);
 	public native void run(int mrb);
 	public native void handle(int mrb, int type, int id, int opt);

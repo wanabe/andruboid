@@ -12,7 +12,7 @@ module Jmi
       module ::Kernel
         def p(*objs)
           objs.each do |obj|
-            Jmi::J::Android::Util::Log.v("print", obj.inspect)
+            Jmi::J::Android::Util::Log.v("stdout", obj.inspect)
           end
         end
       end

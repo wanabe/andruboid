@@ -736,13 +736,21 @@ static int check_exc(mrb_state *mrb) {
   return 0;
 }
 
-jint Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz) {
+jint Java_com_github_wanabe_Andruboid_initialize(JNIEnv* env, jobject thiz, jstring jdir) {
   mrb_state *mrb = mrb_open();
+  mrb_value mdir;
   int ai = mrb_gc_arena_save(mrb);
+  jsize size;
+  const char *cdir;
 
   debug = 0;
   mrb->ud = (void*)env;
   init_jmi(mrb);
+  cdir = (*env)->GetStringUTFChars(env, jdir, NULL);
+  size = (*env)->GetStringUTFLength(env, jdir);
+  mdir = mrb_str_new(mrb, cdir, size);
+  mrb_ary_push(mrb, mrb_gv_get(mrb, mrb_intern_cstr(mrb, "$:")), mdir);
+  (*env)->ReleaseStringUTFChars(env, jdir, cdir);
   mrb_gc_arena_restore(mrb, ai);
 
   return (jint)mrb;
