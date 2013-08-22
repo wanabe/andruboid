@@ -18,7 +18,9 @@ module Jmi
     end
     def class_path(klass, sep = "/")
       path = klass.instance_variable_get "@class_path"
-      return path if path
+      if path
+        return path.gsub("/", sep)
+      end
 
       until (path = klass.to_s).index("Jmi::J::") == 0
         klass = klass.superclass
@@ -84,22 +86,36 @@ module Jmi
     end
     NAME_TABLE = {
       "void" => Void,
+      "V" => Void,
       "boolean" => Boolean,
+      "Z" => Boolean,
       "int" => Int,
+      "I" => Int,
       "long" => Long,
-      "float" => Float
+      "J" => Long,
+      "float" => Float,
+      "F" => Float
     }
     def name2class(name)
-      NAME_TABLE[name]
+      depth = 0
+      while name.index("[") == 0
+        name = name[1, name.length]
+        depth += 1
+      end
+      ret = NAME_TABLE[name]
+      depth.times do
+        ret = [ret]
+      end
+      ret
     end
     def proc_method(name, methods)
       lambda do |*args|
         found = false
         ret = nil
         methods.each do |meth|
-          if meth.setup args
+          if meth.check args
             found = true
-            ret = meth.call self
+            ret = meth.call self, name, args
             break
           end
         end

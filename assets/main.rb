@@ -21,8 +21,7 @@ module Jmi
       vlayout << button
 
       adapter = ArrayAdapter[Java::Lang::String].new self, Android::R::Layout::SIMPLE_LIST_ITEM_1
-      @table = self.class.instance_methods(false).sort
-      @table.delete :initialize
+      @table = self.class.method_table#instance_methods(false).sort
       @table.each do |name|
         name = name.to_s.split("_").map{|n| n.capitalize}.join("")
         adapter.add name
@@ -51,6 +50,8 @@ module Jmi
       @layout.layout_params = param
       vlayout << @layout
     end
+
+    @method_table = instance_methods(false)
     def button
       button = Button.new(self)
       button.text = "button"
@@ -307,6 +308,11 @@ module Jmi
         canvas.draw_arc oval, 90, 135, false, paint
       end
       @layout << customview
+    end
+    @method_table = instance_methods(false) - @method_table
+    @method_table.sort!
+    def self.method_table
+      @method_table
     end
   end
 end

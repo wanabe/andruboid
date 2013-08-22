@@ -90,7 +90,7 @@ static jarray jmeth_i__start_enum_ary(mrb_state *mrb, mrb_value mobj, struct RJM
 
   jary = (jarray)(*env)->CallObjectMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
   if (!jary) {
-    return 0;
+    return NULL;
   }
   if (rmeth->opt2.depth != 1) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "TODO: return nested array");
@@ -133,6 +133,30 @@ static mrb_value jmeth_i__call_int(mrb_state *mrb, mrb_value mobj, struct RJMeth
   return mrb_fixnum_value(ji);
 }
 
+static mrb_value jmeth_i__call_int_ary(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jarray jary;
+  mrb_value mitem, mary;
+  int i, ai, size;
+  jint *jints;
+
+  jary = jmeth_i__start_enum_ary(mrb, mobj, rmeth, &mary, &size);
+  if (!jary) {
+    return mrb_nil_value();
+  }
+  jints = (*env)->GetIntArrayElements(env, jary, NULL);
+
+  for (i = 0; i < size; i++) {
+    ai = mrb_gc_arena_save(mrb);
+    mitem = mrb_fixnum_value(jints[i]);
+    mrb_ary_push(mrb, mary, mitem);
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  (*env)->ReleaseIntArrayElements(env, jary, jints, 0);
+  (*env)->DeleteLocalRef(env, jary);
+  return mary;
+}
+
 static mrb_value jmeth_i__call_int_static(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jint ji;
@@ -143,12 +167,49 @@ static mrb_value jmeth_i__call_int_static(mrb_state *mrb, mrb_value mobj, struct
   return mrb_fixnum_value(ji);
 }
 
+static mrb_value jlong2mlong(mrb_state *mrb, jlong jl) {
+  mrb_value mmod;
+  mrb_value mlong[2];
+  unsigned long long bits = (unsigned long long) jl;
+
+  mmod = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_cstr(mrb, "Jmi"));
+  mmod = mrb_const_get(mrb, mmod, mrb_intern_cstr(mrb, "J"));
+  mmod = mrb_const_get(mrb, mmod, mrb_intern_cstr(mrb, "Long"));
+  mlong[0] = mrb_fixnum_value((int)((bits<<32)>>32));
+  mlong[1] = mrb_fixnum_value((int)(bits>>32));
+  return mrb_obj_new(mrb, mrb_class_ptr(mmod), 2, mlong);
+}
+
 static mrb_value jmeth_i__call_long(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jlong jl;
 
   jl = (*env)->CallLongMethodA(env, (jobject)DATA_PTR(mobj), rmeth->id, rmeth->argv);
-  return mrb_float_value(mrb, (float)jl);
+  return jlong2mlong(mrb, jl);
+}
+
+static mrb_value jmeth_i__call_long_ary(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
+  JNIEnv* env = (JNIEnv*)mrb->ud;
+  jarray jary;
+  mrb_value mitem, mary;
+  int i, ai, size;
+  jlong *jlongs;
+
+  jary = jmeth_i__start_enum_ary(mrb, mobj, rmeth, &mary, &size);
+  if (!jary) {
+    return mrb_nil_value();
+  }
+  jlongs = (*env)->GetLongArrayElements(env, jary, NULL);
+
+  for (i = 0; i < size; i++) {
+    ai = mrb_gc_arena_save(mrb);
+    mitem = jlong2mlong(mrb, jlongs[i]);
+    mrb_ary_push(mrb, mary, mitem);
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  (*env)->ReleaseLongArrayElements(env, jary, jlongs, 0);
+  (*env)->DeleteLocalRef(env, jary);
+  return mary;
 }
 
 static mrb_value jmeth_i__call_float(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
@@ -195,7 +256,7 @@ static mrb_value jmeth_i__wrap_jclassobj(mrb_state *mrb, mrb_value mobj, jobject
 static mrb_value jmeth_i__jclass2mclass(mrb_state *mrb, jobject jobj, mrb_value mobj) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
   jstring jname;
-  mrb_value mclass, mname, mclassobj;
+  mrb_value mret, mclass, mname, mclassobj;
   const char *cname;
   jsize size;
   jclass jclazz;
@@ -215,7 +276,10 @@ static mrb_value jmeth_i__jclass2mclass(mrb_state *mrb, jobject jobj, mrb_value 
   (*env)->ReleaseStringUTFChars(env, jname, cname);
   (*env)->DeleteLocalRef(env, jname);
 
-  mclass = mrb_funcall(mrb, mobj, "name2class", 1, mname);
+  mret = mclass = mrb_funcall(mrb, mobj, "name2class", 1, mname);
+  while (mrb_type(mclass) == MRB_TT_ARRAY) {
+    mclass = mrb_ary_ref(mrb, mclass, 0);
+  }
   if (mrb_nil_p(mclass)) {
     return jmeth_i__wrap_jclassobj(mrb, mobj, jobj);
   }
@@ -226,7 +290,7 @@ static mrb_value jmeth_i__jclass2mclass(mrb_state *mrb, jobject jobj, mrb_value 
   } else {
     (*env)->DeleteLocalRef(env, jobj);
   }
-  return mclass;
+  return mret;
 }
 
 static mrb_value jmeth_i__call_class(mrb_state *mrb, mrb_value mobj, struct RJMethod *rmeth) {
@@ -360,8 +424,14 @@ static inline caller_t type2caller(const char *ctype, int is_static, int depth) 
     case 'I' | FLAG_STATIC: {
       return jmeth_i__call_int_static;
     } break;
+    case 'I' | FLAG_ARY: {
+      return jmeth_i__call_int_ary;
+    } break;
     case 'J': {
       return jmeth_i__call_long;
+    } break;
+    case 'J' | FLAG_ARY: {
+      return jmeth_i__call_long_ary;
     } break;
     case 'F': {
       return jmeth_i__call_float;
@@ -457,7 +527,7 @@ static mrb_value jmeth__initialize(mrb_state *mrb, mrb_value self) {
     if (!smeth->caller) {
       mrb_value mstatic = mrb_str_new_cstr(mrb, is_static ? "static " : "");
       mrb_value misary = mrb_str_new_cstr(mrb, depth ? "array " : "");
-      mrb_raisef(mrb, E_RUNTIME_ERROR, "Jmi: return type error: %S%S%S", mstatic, misary, msig);
+      mrb_raisef(mrb, E_RUNTIME_ERROR, "Jmi: unsupported return type: %S%S%S", mstatic, misary, msig);
     }
   }
   smeth->argc = ary->len;
@@ -482,23 +552,36 @@ static char *mobj2jvalue(mrb_state *mrb, char *types, mrb_value mobj, jvalue *jv
   switch (TYPE_VAL(*types++, mrb_type(mobj))) {
     case TYPE_VAL('Z', MRB_TT_FALSE):
     case TYPE_VAL('Z', MRB_TT_TRUE): {
-      jval->z = mrb_bool(mobj);
+      if (jval) {
+        jval->z = mrb_bool(mobj);
+      }
     } break;
     case TYPE_VAL('I', MRB_TT_FIXNUM): {
-      jval->i = mrb_fixnum(mobj);
+      if (jval) {
+        jval->i = mrb_fixnum(mobj);
+      }
     } break;
     case TYPE_VAL('F', MRB_TT_FLOAT): {
-      jval->f = mrb_float(mobj);
+      if (jval) {
+        jval->f = mrb_float(mobj);
+      }
     } break;
     case TYPE_VAL('F', MRB_TT_FIXNUM): {
+      if (jval) {
         jval->f = mrb_fixnum(mobj);
-      } break;
+      }
+    } break;
+    case TYPE_VAL('L', MRB_TT_STRING):
     case TYPE_VAL('s', MRB_TT_STRING): {
-      jval->l = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &mobj));
+      if (jval) {
+        jval->l = (jobject)(*env)->NewStringUTF(env, mrb_string_value_cstr(mrb, &mobj));
+      }
     } break;
     case TYPE_VAL('L', MRB_TT_FALSE): {
       types = strchr(types, ';') + 1;
-      jval->l = (jobject)NULL;
+      if (jval) {
+        jval->l = (jobject)NULL;
+      }
     } break;
     case TYPE_VAL('L', MRB_TT_DATA): {
       char *cname = types;
@@ -513,22 +596,26 @@ static char *mobj2jvalue(mrb_state *mrb, char *types, mrb_value mobj, jvalue *jv
       if (!mrb_obj_is_kind_of(mrb, mobj, mrb_class_ptr(mclass))) {
         return NULL;
       }
-      jval->l = (jobject)DATA_PTR(mobj);
+      if (jval) {
+        jval->l = (jobject)DATA_PTR(mobj);
+      }
     } break;
     case TYPE_VAL('[', MRB_TT_ARRAY): {
       struct RArray *ary;
       int i, size, len;
-      jarray jary;
-      char *head, *ptr;
+      jarray jary = NULL;
+      char *head, *ptr = NULL;
 
       head = types;
       ary = mrb_ary_ptr(mobj);
       len = ary->len;
       switch (*head) {
         case 'F': {
-          jary = (*env)->NewFloatArray(env, len);
-          size = sizeof(jfloat);
-          ptr = (char*)(*env)->GetFloatArrayElements(env, jary, NULL);
+          if (jval) {
+            jary = (*env)->NewFloatArray(env, len);
+            size = sizeof(jfloat);
+            ptr = (char*)(*env)->GetFloatArrayElements(env, jary, NULL);
+          }
         } break;
         default: {
           return NULL;
@@ -536,8 +623,11 @@ static char *mobj2jvalue(mrb_state *mrb, char *types, mrb_value mobj, jvalue *jv
       }
       for (i = 0; i < len; i++) {
         mrb_value mitem = ary->ptr[i];
-        jvalue *jarg = (jvalue*)(ptr + i * size);
+        jvalue *jarg = NULL;
 
+        if (jval) {
+          jarg = (jvalue*)(ptr + i * size);
+        }
         types = mobj2jvalue(mrb, head, mitem, jarg);
         if (!types) {
           return NULL;
@@ -545,13 +635,17 @@ static char *mobj2jvalue(mrb_state *mrb, char *types, mrb_value mobj, jvalue *jv
       }
       switch (*head) {
         case 'F': {
-          (*env)->ReleaseFloatArrayElements(env, jary, (jfloat*)ptr, 0);
+          if (jval) {
+            (*env)->ReleaseFloatArrayElements(env, jary, (jfloat*)ptr, 0);
+          }
         } break;
         default: {
           return NULL;
         }
       }
-      jval->l = jary;
+      if (jval) {
+        jval->l = jary;
+      }
     } break;
     default: {
       return NULL;
@@ -561,7 +655,7 @@ static char *mobj2jvalue(mrb_state *mrb, char *types, mrb_value mobj, jvalue *jv
   return types;
 }
 
-static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
+static mrb_value jmeth__check(mrb_state *mrb, mrb_value self) {
   mrb_value margs;
   struct RJMethod *smeth = DATA_PTR(self);
   struct RArray *ary;
@@ -578,9 +672,8 @@ static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
   }
   for (i = 0; i < ary->len; i++) {
     mrb_value item = ary->ptr[i];
-    jvalue *jarg = smeth->argv + i;
 
-    types = mobj2jvalue(mrb, types, item, jarg);
+    types = mobj2jvalue(mrb, types, item, NULL);
     if (!types) {
       return mrb_false_value();
     }
@@ -590,31 +683,38 @@ static mrb_value jmeth__setup(mrb_state *mrb, mrb_value self) {
 
 static mrb_value jmeth__call(mrb_state *mrb, mrb_value self) {
   JNIEnv* env = (JNIEnv*)mrb->ud;
-  mrb_value mobj;
+  mrb_value mobj, mname, margs;
   struct RJMethod *smeth;
   int i;
   char *types;
+  struct RArray *ary;
 
   smeth = DATA_PTR(self);
-  mrb_get_args(mrb, "o", &mobj);
-
-  mobj = smeth->caller(mrb, mobj, smeth);
+  mrb_get_args(mrb, "ooo", &mobj, &mname, &margs);
+  ary = mrb_ary_ptr(margs);
   types = smeth->types;
-  for (i = 0; i < smeth->argc; i++) {
+
+  for (i = 0; i < ary->len; i++) {
+    mrb_value item = ary->ptr[i];
     jvalue *jarg = smeth->argv + i;
-    switch (*(++types)) {
-      case 's': {
+
+    types = mobj2jvalue(mrb, types, item, jarg);
+    if (!types) {
+      return mrb_false_value();
+    }
+  }
+  mobj = smeth->caller(mrb, mobj, smeth);
+  for (i = 0; i < smeth->argc; i++) {
+    mrb_value mitem = ary->ptr[i];
+    jvalue *jarg = smeth->argv + i;
+    switch (mrb_type(mitem)) {
+      case MRB_TT_STRING: {
         (*env)->DeleteLocalRef(env, jarg->l);
-      } break;
-      case 'L': {
-        while (*types && *types != ';') {
-          types++;
-        }
       } break;
     }
   }
   if ((*env)->ExceptionCheck(env)) {
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "exception in java method");
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "exception in java method '%S'", mname);
   }
   return mobj;
 }
@@ -658,6 +758,10 @@ static mrb_value jmi_s__get_field_static(mrb_state *mrb, mrb_value self) {
       jval = (*env)->GetStaticIntField(env, jclazz, fid);
       return mrb_fixnum_value(jval);
     } break;
+    case 'J': {
+      jlong jval = (*env)->GetStaticLongField(env, jclazz, fid);
+      return jlong2mlong(mrb, jval);
+    }
     case 'L': {
       jobject jval;
       jval = (*env)->GetStaticObjectField(env, jclazz, fid);
@@ -670,7 +774,7 @@ static mrb_value jmi_s__get_field_static(mrb_state *mrb, mrb_value self) {
     } break;
   }
   mclass = mrb_funcall(mrb, mclass, "inspect", 0);
-  mrb_raisef(mrb, E_RUNTIME_ERROR, "unsupported field: %S == %S in %S", mstr, mname, mclass);
+  mrb_raisef(mrb, E_RUNTIME_ERROR, "unsupported field: %S (%S in %S)", mstr, mname, mclass);
   return mrb_nil_value();
 }
 
@@ -704,8 +808,8 @@ static struct RClass *init_jmi(mrb_state *mrb) {
   MRB_SET_INSTANCE_TT(klass, MRB_TT_DATA);
   mrb_define_method(mrb, klass, "initialize", jmeth__initialize, ARGS_REQ(3));
   mrb_define_method(mrb, klass, "types", jmeth__types, ARGS_REQ(0));
-  mrb_define_method(mrb, klass, "setup", jmeth__setup, ARGS_REQ(1));
-  mrb_define_method(mrb, klass, "call", jmeth__call, ARGS_REQ(1));
+  mrb_define_method(mrb, klass, "check", jmeth__check, ARGS_REQ(1));
+  mrb_define_method(mrb, klass, "call", jmeth__call, ARGS_REQ(3));
 
   klass = mrb_define_class_under(mrb, mod,
     "Object", mrb->object_class);
@@ -721,8 +825,9 @@ static int check_exc(mrb_state *mrb) {
     mrb_value mstr;
     jclass jclazz;
     if ((*env)->ExceptionCheck(env)) {
-      mrb->exc = 0;
-      return 1;
+      (*env)->ExceptionClear(env);
+      //mrb->exc = 0;
+      //return 1;
     }
     mstr = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
     mrb->exc = 0;

@@ -53,6 +53,7 @@ module Jmi
             attach_const self, "STROKE"
             attach_const self, "FILL_AND_STROKE"
           end
+          attach_auto
           attach_init
           attach Void, "setColor", Int
           attach Void, "setAntiAlias", Boolean
@@ -70,6 +71,7 @@ module Jmi
           class Direction < Java::Lang::Object
             attach_const self, "CW"
           end
+          attach_auto
           attach_init
           attach Void, "addCircle", Float, Float, Float, Direction
           attach Void, "addRoundRect", RectF, Float, Float, Direction
@@ -141,6 +143,7 @@ module Jmi
           alias remove_all remove_all_views
         end
         class View
+          attach_auto
           attach_const Int, "LAYER_TYPE_SOFTWARE"
           attach Void, "setLayoutParams", ViewGroup::LayoutParams
           attach Void, "setOnClickListener", OnClickListener
@@ -187,6 +190,7 @@ module Jmi
           module OnCheckedChangeListener
             extend Interface
           end
+          attach_auto
           attach_init Android::Content::Context
           attach Int, "getCheckedRadioButtonId"
           attach Void, "setOnCheckedChangeListener", OnCheckedChangeListener
@@ -223,6 +227,7 @@ module Jmi
           module OnItemSelectedListener
             extend Interface
           end
+          attach_auto
           attach Void, "setOnItemClickListener", OnItemClickListener
           attach Java::Lang::Object, "getItemAtPosition", Int
           alias [] getItemAtPosition
@@ -231,6 +236,7 @@ module Jmi
           module OnScrollListener
             extend Interface
           end
+          attach_auto
           attach Void, "setOnScrollListener", OnScrollListener
         end
         class ListView < AbsListView
@@ -242,22 +248,24 @@ module Jmi
           attach Void, "setAdapter", SpinnerAdapter
           attach Void, "setOnItemSelectedListener", AdapterView::OnItemSelectedListener
         end
-        class RatingBar < Android::View::View
-          attach_init Android::Content::Context
-          attach Void, "setNumStars", Int
-          attach Void, "setRating", Float
-        end
-        class SeekBar < Android::View::View
-          attach_init Android::Content::Context
-          attach Void, "setMax", Int
-          attach Void, "setProgress", Int
-        end
         class ProgressBar < Android::View::View
           attach_init Android::Content::Context
           attach_init Android::Content::Context, Android::Util::AttributeSet, Int
           attach Void, "setMax", Int
           attach Void, "setProgress", Int
           attach Void, "setProgressDrawable", Android::Graphics::Drawable::Drawable
+        end
+        class AbsSeekBar < ProgressBar
+          attach Void, "setMax", Int
+        end
+        class RatingBar < AbsSeekBar
+          attach_init Android::Content::Context
+          attach Void, "setNumStars", Int
+          attach Void, "setRating", Float
+        end
+        class SeekBar < AbsSeekBar
+          attach_init Android::Content::Context
+          attach Void, "setProgress", Int
         end
         class AnalogClock < Android::View::View
           attach_init Android::Content::Context
