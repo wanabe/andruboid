@@ -4,5 +4,6 @@ require "util"
 # require "auto.rb"
 require "java"
 require "android"
+require "andruboid"
 require "main"
 

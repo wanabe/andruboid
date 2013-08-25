@@ -65,6 +65,37 @@ public class Andruboid extends Activity{
 		return scanner.useDelimiter("\\A").next();
 	}
 
+	void exportAssetsDir(AssetManager assets, java.util.List<String> ignores, String dirName) throws IOException {
+		String dir = dirName == null ? "" : dirName;
+		String prefix = dirName == null ? "" : dir + "/";
+		String [] names = assets.list(dir);
+		int i;
+
+		for (i = 0; i < names.length; i++) {
+			String name = prefix + names[i];
+			if (ignores == null || !ignores.contains(name)) {
+				InputStream in = null;
+				try {
+					in = assets.open(name);
+				} catch(IOException e) {
+				}
+				File file = new File(asset_dir, name);
+				if (in == null) {
+					if (!file.exists()) {
+						file.mkdir();
+					}
+					exportAssetsDir(assets, null, name);
+				} else {
+					if (!file.exists()) {
+						BufferedWriter out = new BufferedWriter(new FileWriter(file));
+						out.write(stream2String(in));
+						out.close();
+					}
+				}
+			}
+		}		
+	}
+
 	String exportAssets(String dirName) {
 		asset_dir = new File(Environment.getExternalStorageDirectory(), dirName);
 		if (!asset_dir.exists()) {
@@ -72,23 +103,10 @@ public class Andruboid extends Activity{
 		}
 
 		AssetManager assets = getAssets();
-		String name = null;
 		try {
-			String [] names = assets.list("");
 			String [] ignore = {"webkit", "sounds", "images"};
 			java.util.List<String> ignores = java.util.Arrays.asList(ignore);
-			int i;
-			for (i = 0; i < names.length; i++) {
-				name = names[i];
-				if (!ignores.contains(name)) {
-					File file = new File(asset_dir, name);
-					if (!file.exists()) {
-						BufferedWriter out = new BufferedWriter(new FileWriter(file));
-						out.write(stream2String(assets.open(name)));
-						out.close();
-					}
-				}
-			}
+			exportAssetsDir(assets, ignores, null);
 		} catch(IOException e) {
 			showError(e);
 		}
