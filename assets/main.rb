@@ -21,7 +21,7 @@ module Jmi
       vlayout << button
 
       adapter = ArrayAdapter[Java::Lang::String].new self, Android::R::Layout::SIMPLE_LIST_ITEM_1
-      @table = self.class.method_table#instance_methods(false).sort
+      @table = self.class.method_table
       @table.each do |name|
         name = name.to_s.split("_").map{|n| n.capitalize}.join("")
         adapter.add name
@@ -52,6 +52,23 @@ module Jmi
     end
 
     @method_table = instance_methods(false)
+    def _how_to_use
+      builder = AlertDialog::Builder.new self
+      builder.title = "How to use andruboid"
+      builder.message = "\
+       When you run andruboid at first,\
+      it creates 'andruboid' directory\
+      in sdcard.\
+       You can change the scripts in
+      this directory to write a application.\
+      bootstrup script is 'setup.rb'.\
+      ".sub!("\n", "").gsub!("      ", "")
+      builder.set_positive_button "OK", nil#listener
+
+      dialog = builder.create
+      dialog.show
+      
+    end
     def button
       button = Button.new(self)
       button.text = "button"
