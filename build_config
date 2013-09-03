@@ -3,4 +3,5 @@ MRuby::CrossBuild.new('androideabi') do |conf|
   conf.gembox 'default'
   conf.gem :github => 'mattn/mruby-require'
   conf.gem :github => 'wanabe/mruby-jni'
+  @gems.instance_variable_get("@ary").pop if ENV['MRUBY_WITHOUT_JNI'] == '1'
 end

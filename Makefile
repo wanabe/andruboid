@@ -1,6 +1,7 @@
 MRUBY_URL := https://github.com/mruby/mruby.git
 MRUBY_A := libmruby.a
 MRUBY_A_FULL = build/androideabi/lib/$(MRUBY_A)
+MRUBY_WITHOUT_JNI=0
 
 all: setup build.xml
 	$(ANDROID_NDK_HOME)/ndk-build

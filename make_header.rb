@@ -4,7 +4,8 @@ buf = ""
   buf.concat "#include \"#{name}\"\n"
 end
 Dir.chdir("../..")
-open("mruby/build/mrbgems/mruby-jni/include/mruby-jni.h") do |f|
+fname = ENV['MRUBY_WITHOUT_JNI'] == '1' ? "mruby/build/mrbgems/mruby-jni/src/jni.c" : "mruby/build/mrbgems/mruby-jni/include/mruby-jni.h"
+open(fname) do |f|
   buf.concat f.read
 end
 
