@@ -1,8 +1,8 @@
-module Jmi
+module Jni
   module J
     module Java
       module Lang
-        class Object < Jmi::Object
+        class Object < Jni::Object
         end
         class Class < Java::Lang::Object
           J::TYPE_TABLE[self] = "c"
@@ -12,7 +12,7 @@ module Jmi
               names = super
               names = [name] if names.is_a?(Proc) || names.is_a?(Symbol)
               names.each do |name|
-                Jmi::Object.singleton_class.define_method(safe_name(name, Jmi::Object.singleton_class)) do |*argv|
+                Jni::Object.singleton_class.define_method(safe_name(name, Jni::Object.singleton_class)) do |*argv|
                   @jclassobj.send(name, *argv)
                 end
               end

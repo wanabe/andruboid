@@ -1,4 +1,4 @@
-require "jmi"
+require "jni"
 require "core"
 require "util"
 # TODO: doesn't work "auto.rb" with Generics now.

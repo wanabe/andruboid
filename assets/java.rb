@@ -1,4 +1,4 @@
-module Jmi
+module Jni
   module J
     module Java
       module Lang
@@ -7,7 +7,7 @@ module Jmi
             attach Java::Lang::String, "toString"
           end
         end
-        class Object < Jmi::Object
+        class Object < Jni::Object
           attach Class, "getClass"
         end
         class Class < Java::Lang::Object

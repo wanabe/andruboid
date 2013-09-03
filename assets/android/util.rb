@@ -1,4 +1,4 @@
-module Jmi
+module Jni
   module J
     module Android
       module Util
@@ -15,7 +15,7 @@ end
 module ::Kernel
   def p(*objs)
     objs.each do |obj|
-      Jmi::J::Android::Util::Log.v("stdout", obj.inspect)
+      Jni::J::Android::Util::Log.v("stdout", obj.inspect)
     end
   end
 end

@@ -12,7 +12,7 @@ andruboid.zip: setup
 	git clean -fxd -e "jni/*" -e $@
 	zip $@ -r . -x ./mruby\* $@
 
-setup: jni/mruby-all.h jni/$(MRUBY_A)
+setup: jni/$(MRUBY_A) jni/mruby-all.h
 
 jni/$(MRUBY_A): $(MRUBY_A_FULL)
 	cp $< $@

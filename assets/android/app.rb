@@ -1,4 +1,4 @@
-module Jmi
+module Jni
   module J
     module Android
       module App

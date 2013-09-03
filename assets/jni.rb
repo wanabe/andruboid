@@ -1,4 +1,4 @@
-module Jmi
+module Jni
   module Generics
   end
   module J
@@ -22,13 +22,13 @@ module Jmi
         return path.gsub("/", sep)
       end
 
-      until (path = klass.to_s).index("Jmi::J::") == 0
+      until (path = klass.to_s).index("Jni::J::") == 0
         klass = klass.superclass
         raise "#{self} is not Java class/interface" unless klass
       end
       path = path[8..-1].split("::")
 
-      current = Jmi::J
+      current = Jni::J
       path[0, path.length - 1].each do |s|
         current = current.const_get s
         if current.is_a? Class
@@ -134,7 +134,7 @@ module Jmi
     attr_reader :method_table
     def attach_init(*args)
       @method_table[nil] ||= []
-      @method_table[nil].push Jmi::Method.new self, Void, "<init>", args
+      @method_table[nil].push Jni::Method.new self, Void, "<init>", args
     end
     def attach(ret, name, *args)
       attach_at self, ret, name, *args
@@ -143,12 +143,12 @@ module Jmi
       attach_at singleton_class, ret, name, *args
     end
     def attach_const(ret, name)
-      val = Jmi.get_field_static self, ret, name
+      val = Jni.get_field_static self, ret, name
       const_set name.upcase, val
     end
     def attach_at(klass, ret, name, *args)
       argc = args.size
-      jmethod = Jmi::Method.new klass, ret, name, args
+      jmethod = Jni::Method.new klass, ret, name, args
       if @method_table.include? name
         @method_table[name].push jmethod
       else
@@ -170,7 +170,7 @@ module Jmi
     end
   end
   class Method
-    include Jmi::J
+    include Jni::J
   end
   module Generics
     include Definition
@@ -186,13 +186,13 @@ module Jmi
       klass = @table[iclass]
       unless klass
         if self.is_a? ::Class
-          klass = ::Class.new force_path(Jmi::Object.class_path(self))
+          klass = ::Class.new force_path(Jni::Object.class_path(self))
           klass.method_table[nil] = method_table[nil] if method_table[nil]
         else
-          klass = ::Class.new Jmi::Object.force_path(Jmi::Object.class_path(self))
+          klass = ::Class.new Jni::Object.force_path(Jni::Object.class_path(self))
           klass.include self
         end
-        Jmi.set_classpath klass, "#{self}<#{iclass}>"
+        Jni.set_classpath klass, "#{self}<#{iclass}>"
         klass.instance_variable_set "@iclass", iclass
         @generics.each do |args|
           klass.attach *args

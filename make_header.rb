@@ -4,6 +4,9 @@ buf = ""
   buf.concat "#include \"#{name}\"\n"
 end
 Dir.chdir("../..")
+open("mruby/build/mrbgems/mruby-jni/include/mruby-jni.h") do |f|
+  buf.concat f.read
+end
 
 table = {}
 tail = 0

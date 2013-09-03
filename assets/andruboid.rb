@@ -1,10 +1,10 @@
-module Jmi
+module Jni
   module J
     module Com
       module Github
         module Wanabe
           class Andruboid < Android::App::Activity
-            class Listener < Jmi::Object
+            class Listener < Jni::Object
               include Android::App::DatePickerDialog::OnDateSetListener
               include Android::App::TimePickerDialog::OnTimeSetListener
               include Android::View::View::OnClickListener
@@ -27,7 +27,7 @@ module Jmi
                 @types = types
                 @block = block
                 id = self.class.push self
-                super Jmi::Main.main, id
+                super Jni::Main.main, id
               end
               def call(type, opt)
                 return unless @types.empty? || @types.include?(type)
@@ -61,7 +61,7 @@ module Jmi
   CustomView = Main::CustomView
   class Main
     def initialize
-      Jmi::Main.main = self
+      Jni::Main.main = self
     end
     def exit
       finish

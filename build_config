@@ -2,4 +2,5 @@ MRuby::CrossBuild.new('androideabi') do |conf|
   toolchain :androideabi
   conf.gembox 'default'
   conf.gem :github => 'mattn/mruby-require'
+  conf.gem :github => 'wanabe/mruby-jni'
 end

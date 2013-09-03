@@ -1,4 +1,4 @@
-module Jmi
+module Jni
   module Definition
     def attach(*args)
     end

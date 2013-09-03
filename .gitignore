@@ -9,5 +9,6 @@ jni/libmruby.a
 *.2~
 build.xml
 local.properties
+mruby_config.rb
 proguard-project.txt
 project.properties

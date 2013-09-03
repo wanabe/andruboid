@@ -1,4 +1,4 @@
-module Jmi
+module Jni
   class Andruboid < Main
     include Java::Util
     include Android::App
@@ -266,8 +266,8 @@ module Jmi
         begin
           canvas.clip_path clip_path, Region::Op::DIFFERENCE
         rescue Exception => e
-          # draw white eyes after if clip_path is unsupportef
-          Jmi.clear_exception
+          # draw white eyes after if clip_path is unsupported
+          Jni.clear_exception
         else
           clip_path = nil
         end
