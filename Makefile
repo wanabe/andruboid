@@ -1,6 +1,6 @@
 MRUBY_URL := https://github.com/mruby/mruby.git
 MRUBY_A := libmruby.a
-MRUBY_A_FULL =  mruby/build/androideabi/lib/$(MRUBY_A)
+MRUBY_A_FULL = build/androideabi/lib/$(MRUBY_A)
 
 all: setup build.xml
 	$(ANDROID_NDK_HOME)/ndk-build
@@ -14,11 +14,11 @@ andruboid.zip: setup
 
 setup: jni/$(MRUBY_A) jni/mruby-all.h
 
-jni/$(MRUBY_A): $(MRUBY_A_FULL)
+jni/$(MRUBY_A): mruby/$(MRUBY_A_FULL)
 	cp $< $@
 
-$(MRUBY_A_FULL): mruby mruby_config.rb
-	cd mruby ; make MRUBY_CONFIG=../mruby_config.rb
+mruby/$(MRUBY_A_FULL): mruby mruby_config.rb
+	cd mruby ; MRUBY_CONFIG=../mruby_config.rb ruby minirake $(abspath $@)
 
 mruby:
 	git clone $(MRUBY_URL) mruby
