@@ -43,7 +43,7 @@ void Java_com_github_wanabe_Andruboid_evalScript(JNIEnv* env, jobject thiz, jint
 void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) {
   mrb_state *mrb = (mrb_state *)jmrb;
   int ai = mrb_gc_arena_save(mrb);
-  struct RClass *klass, *mod = mrb_class_get(mrb, "Jni");
+  struct RClass *klass, *mod = mrb_module_get(mrb, "Jni");
   mrb_value mmain_class, mclass, mobj;
 
   mmain_class = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Main"));
@@ -66,7 +66,7 @@ void Java_com_github_wanabe_Andruboid_run(JNIEnv* env, jobject thiz, jint jmrb) 
 void Java_com_github_wanabe_Andruboid_handle__IIII(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid, jint jopt) {
   mrb_state *mrb = (mrb_state *)jmrb;
   int ai = mrb_gc_arena_save(mrb);
-  struct RClass *mod = mrb_class_get(mrb, "Jni");
+  struct RClass *mod = mrb_module_get(mrb, "Jni");
   mrb_value mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Listener"));
 
   mrb_funcall(mrb, mclass, "call", 3, mrb_fixnum_value(jtype), mrb_fixnum_value(jid), mrb_fixnum_value(jopt));
@@ -77,7 +77,7 @@ void Java_com_github_wanabe_Andruboid_handle__IIII(JNIEnv* env, jobject thiz, ji
 void Java_com_github_wanabe_Andruboid_handle__III_3I(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid, jintArray jopt) {
   mrb_state *mrb = (mrb_state *)jmrb;
   int ai = mrb_gc_arena_save(mrb);
-  struct RClass *mod = mrb_class_get(mrb, "Jni");
+  struct RClass *mod = mrb_module_get(mrb, "Jni");
   mrb_value mary, mitem, mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Listener"));
   int i;
   jint *jints, size;
@@ -99,7 +99,7 @@ void Java_com_github_wanabe_Andruboid_handle__III_3I(JNIEnv* env, jobject thiz, 
 void Java_com_github_wanabe_Andruboid_handle__IIILjava_lang_Object_2Ljava_lang_Class_2(JNIEnv* env, jobject thiz, jint jmrb, jint jtype, jint jid, jobject jopt, jobject jclassobj) {
   mrb_state *mrb = (mrb_state *)jmrb;
   int ai = mrb_gc_arena_save(mrb);
-  struct RClass *mod = mrb_class_get(mrb, "Jni");
+  struct RClass *mod = mrb_module_get(mrb, "Jni");
   mrb_value mobj, mclass = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Listener"));
 
   mobj = mrb_const_get(mrb, mrb_obj_value(mod), mrb_intern_cstr(mrb, "Object"));
